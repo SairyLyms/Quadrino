@@ -2,11 +2,14 @@
 //  Include Header Files
 //  -----------------------------------------------------------------------------
 
-#include <Wire.h>           // Include I2C communications
+#include "Wire.h"           // Include I2C communications
 #include <MadgwickAHRS.h>
 #include "Venus838FLP.h"    // GPS Functions
-#include "MS5611.h"         // MS5611 Functions
-#include "MPU9150.h"        // MPU9150 Functions
+#include "I2Cdev.h"
+#include "MPU9150.h"
+#include "AK8975.h"
+#include "helper_3dmath.h"
+
 
 //Definition
 //-------------------------
@@ -19,6 +22,8 @@
 
 //  Setup Variables
 //  -----------------------------------------------------------------------------
+MPU9150 accelGyroMag;
+AK8975 mag;
 Madgwick AHRS;
 
 String inputString = "";         // Serial Comm: a string to hold incoming data
@@ -34,15 +39,21 @@ float latlonCenter[2] = {0.5 * (latlonCp[0][0] + latlonCp[1][0]),0.5 * (latlonCp
 void setup(){
     Serial.begin(115200);            // Start Serial Port at 57600 baud
     Wire.begin();                   // Initialize the 'Wire' class for the I2C-bus.
+    Wire.setClock(400000L);    
+    //GPSModuleInit();                // Venus838FLP: Startup GPS Module
+    //GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
+    //Llh2Ecef(latlonCenter[0] * M_PI / 180.0f,latlonCenter[1] * M_PI / 180.0f,heightCenter,&x0,&y0,&z0); //原点座標設定
+    mag.initialize();
+    accelGyroMag.initialize();
+    accelGyroMag.setFullScaleAccelRange(MPU9150_ACCEL_FS_2);
+    accelGyroMag.setFullScaleGyroRange(MPU9150_GYRO_FS_500);
+    accelGyroMag.setXAccelOffset(1149);
+    accelGyroMag.setYAccelOffset(2154);
+    accelGyroMag.setZAccelOffset(1621);
+    accelGyroMag.setXGyroOffset(-59);
+    accelGyroMag.setYGyroOffset(-16);
+    accelGyroMag.setZGyroOffset(-13);
     AHRS.begin(100.0f);
-    inputString.reserve(200);       // SerialCommunications: reserve 200 bytes for the inputString:
-    GPSModuleInit();                // Venus838FLP: Startup GPS Module
-    GPSConfigureDefaults();         // Venus838FLP: Configure Default Values
-  
-    // Initialize MS5611 sensor
-    MPU9150_writeSensor(MPU9150_PWR_MGMT_1, 0);     // MPU9150: Clear the 'sleep' bit to start the sensor.
-    MPU9150_setupCompass();                         // MPU9150: Start the compass
-    Llh2Ecef(latlonCenter[0] * M_PI / 180.0f,latlonCenter[1] * M_PI / 180.0f,heightCenter,&x0,&y0,&z0); //原点座標設定
     Serial.print("heightElp,");Serial.print(heightCenter);
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
@@ -120,21 +131,25 @@ void RotAroudZ(float* x,float* y,float* z,float angleRad)
 
 void ReadIMU(void)
 {
-  float afx,afy,afz;
-  float gfx,gfy,gfz;
-  float mfx,mfy,mfz;
-  afx = convertRawAcceleration(MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H));
-  afy = convertRawAcceleration(MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H));
-  afz = convertRawAcceleration(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H));
-  gfx = convertRawGyro(MPU9150_readSensor(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H));
-  gfy = convertRawGyro(MPU9150_readSensor(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H));
-  gfz = convertRawGyro(MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H));
-  mfx = (float)MPU9150_readSensor(MPU9150_CMPS_XOUT_L,MPU9150_CMPS_XOUT_H);
-  mfy = (float)MPU9150_readSensor(MPU9150_CMPS_YOUT_L,MPU9150_CMPS_YOUT_H);
-  mfz = (float)MPU9150_readSensor(MPU9150_CMPS_ZOUT_L,MPU9150_CMPS_ZOUT_H);
+  int16_t aix,aiy,aiz,gix,giy,giz,mix,miy,miz;  
+  float afx,afy,afz,gfx,gfy,gfz,mfx,mfy,mfz;
+  //mag.wakeUpSingle();
+  //accelGyroMag.getMotion6(&aix,&aiy,&aiz,&gix,&giy,&giz);
+  //mag.getHeadingSoon(&mix, &miy, &miz);
+  //if(mag.getDataReady()){mag.getHeading(&mix, &miy, &miz);}
+  accelGyroMag.getMotion9(&aix,&aiy,&aiz,&gix,&giy,&giz,&mix,&miy,&miz);
+  afx = convertRawAcceleration(aix);
+  afy = convertRawAcceleration(aiy);
+  afz = convertRawAcceleration(aiz);
+  gfx = convertRawGyro(gix);
+  gfy = convertRawGyro(giy);
+  gfz = convertRawGyro(giz);
+  mfx = (float)mix;
+  mfy = (float)miy;
+  mfz = (float)miz;
 #if 0
   Serial.print(",Ax,");
-  Serial.print(convertRawAcceleration(MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H)));
+  Serial.print(afx);
   Serial.print(",Ay,");
   Serial.print(convertRawAcceleration(MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H)));
   Serial.print(",Az,");
@@ -154,6 +169,10 @@ void ReadIMU(void)
 #endif
   AHRS.update(gfx, gfy, gfz, afx, afy, afz, mfy, mfx, mfz);
   //AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz);
+  Serial.print(",Ax,");
+  Serial.print(afx);
+  Serial.print(",Mx,");
+  Serial.print(mfx);
   Serial.print(",yawAngle,");Serial.print(AHRS.getYawRadians()); //ヨー角
 }
 
@@ -176,9 +195,9 @@ void DebugGPS(void)
 void loop ()
 {
     float e,n,u,velmps,heading;
-    VenusRead(1000); 
-    GetPosENU(&e,&n,&u);
-    GetVelAndHead(&velmps,&heading);
+    //VenusRead(1000); 
+    //GetPosENU(&e,&n,&u);
+    //GetVelAndHead(&velmps,&heading);
  #if 0   
     Serial.print(",e,");Serial.print(e);
     Serial.print(",n,");Serial.print(n);
@@ -189,6 +208,7 @@ void loop ()
     ReadIMU();
     //DebugGPS();
     Serial.println(",");
+    Serial.print(",time,");Serial.print(millis());
     delay(10);
 }
 
@@ -210,6 +230,6 @@ float convertRawAcceleration(int aRaw)
  ***********************************************************************/
 float convertRawGyro(int gRaw)
 {
-   float g = (gRaw * 1000.0f) / 32768.0;
+   float g = (gRaw * 500.0f) / 32768.0;
    return g;
 }
