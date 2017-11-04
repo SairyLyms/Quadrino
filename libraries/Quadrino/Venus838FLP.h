@@ -473,7 +473,6 @@ short VenusRead(int timeout)
             Serial.println(result);
         }
       #endif
-        
         return result;
     }
   }
@@ -482,21 +481,16 @@ short VenusRead(int timeout)
 #endif
   return VENUS_TIMEOUT;
 }  
-short VenusRead(int timeout); 
 
-
-
-
-#if 0
 short VenusAsyncRead()
 {
   short result;
-  if (VENUS_SERIAL_AVAILABLE() && (result=VenusProcessInput(VENUS_SERIAL_READ()))==VENUS_OK || result==VENUS_CLIPPED)
-        // a complete message was received
-        return result;
-  return VENUS_MORE;
+  while(VENUS_SERIAL_AVAILABLE()){
+      result=VenusProcessInput(VENUS_SERIAL_READ());
+      if(result==VENUS_OK){return 1;}
+    }
+  return 0;
 }
-#endif
 
 short VenusWrite(int timeout)
 {
