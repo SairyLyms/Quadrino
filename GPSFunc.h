@@ -1,5 +1,7 @@
+//-------------------------
 //Definition
 //-------------------------
+
 #define A				6378137.0		/* Semi-major axis */ 
 #define ONE_F			298.257223563   /* 1/F */
 #define B				(A*(1.0 - 1.0/ONE_F))

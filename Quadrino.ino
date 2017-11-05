@@ -9,8 +9,11 @@
 #include <Venus838FLP.h>    // GPS Functions
 #include <I2Cdev.h>
 #include <MPU6050.h>
+#include <complex.h>
 #include "GPSFunc.h"
 #include "IMUFunc.h"
+#include "Clothoid.h"
+
 
 // ================================================================
 // ===              	Prototype Def.			                      ===
@@ -26,7 +29,11 @@ Scheduler runner;
 
 //  Setup Grobal Variables
 //  -----------------------------------------------------------------------------
+unsigned long timems = millis();
+float sampletimes;
 float e,n,u,velmps,heading;
+float yawRt,yawAngle;
+
 float x0 = 0.0f,y0 = 0.0f,z0 = 0.0f;
 float latlonCp[2][2] = {{36.567932, 139.995764},{36.567874, 139.995761}};
 float heightCenter = 188.0f;
@@ -69,11 +76,11 @@ void SetParamIMU(void)
   accelGyro.setZGyroOffset(-13);
 }
 
-
-void ReadIMU(void)
+void ReadIMU(float sampletimes,float* yawRt,float* yawAngle)
 {
   int16_t aix,aiy,aiz,gix,giy,giz;  
   float afx,afy,afz,gfx,gfy,gfz;
+  float YawAngleNow;
   accelGyro.getMotion6(&aix,&aiy,&aiz,&gix,&giy,&giz);
   afx = convertRawAcceleration(aix);
   afy = convertRawAcceleration(aiy);
@@ -81,8 +88,52 @@ void ReadIMU(void)
   gfx = convertRawGyro(gix);
   gfy = convertRawGyro(giy);
   gfz = convertRawGyro(giz);
-  AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz);                  //コンパスはモータの磁場の影響をモロに受けるため使用せず
+  AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz);            //コンパスはモータの磁場の影響をモロに受けるため使用せず
+  YawAngleNow = AHRS.getYawRadians();
+  *yawRt = (YawAngleNow - *yawAngle) / sampletimes;
+  *yawAngle = YawAngleNow;
 }
+
+/************************************************************************
+ * FUNCTION : 走行軌道生成
+ * INPUT    : なし
+ * OUTPUT   : なし
+ ***********************************************************************/
+void MakeTrajectory(void)
+{
+  float len,psi,phi0,phi1,h,phiV,phiU,cv;
+  int8_t n = 5;
+
+  //---------ここから作成する------------------
+  len=10;psi=0.25*M_PI;phi0 = 0;phi1 = 0.5*M_PI;//ここにコースデータセット関数つくる
+    //新規データセット時にクロソイドパラメータ読み込む
+    CalcClothoid(len,psi,phi0,phi1,&h,&phiV,&phiU,n);//クロソイドパラメータ
+  
+  for(int8_t i=0;i<10;i++){
+    float odo = (float)i * h * 0.1;
+    Serial.print(",Cv,");Serial.println(CalcCurvature(h,phiV,phiU,odo));
+  }
+  //cv = CalcCurvature(h,phiV,phiU,odo);
+
+}
+
+/************************************************************************
+ * FUNCTION : サンプリング時間取得
+ * INPUT    : なし
+ * OUTPUT   : なし
+ ***********************************************************************/
+void getSampletime(unsigned long* timems,float *sampletimes)
+{
+  unsigned long time = millis();
+  if(!timems){
+    *sampletimes = sampleTimems * 0.001f;
+  }
+  else{
+    *sampletimes = 0.001f * (time - *timems);
+  }
+  *timems = time;
+}
+
 
 /************************************************************************
  * FUNCTION : 1周期処理
@@ -91,8 +142,10 @@ void ReadIMU(void)
  ***********************************************************************/
  void Task10ms(void)
  {
-  ReadIMU();
-  Serial.print(",time,");Serial.print(millis());
+  getSampletime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
+  ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
+  Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
+  Serial.print(",YawRt,");Serial.print(yawRt);Serial.print(",yawAg,");Serial.print(yawAngle);
   Serial.print(",E,");Serial.print(e);Serial.print(",N,");Serial.print(n);Serial.print(",U,");Serial.print(u);
   Serial.print(",Vel,");Serial.print(velmps);Serial.print(",Head,");Serial.print(heading);
   Serial.println(",");
@@ -105,7 +158,6 @@ void ReadIMU(void)
   ***********************************************************************/
  void Task20ms(void)
  {
-
  }
 
  /************************************************************************
