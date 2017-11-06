@@ -10,6 +10,7 @@ float CourseData[][3]    = {{0  , 0, 0         },  //初期位置(0,0,0)
 // ===              	Course Data Functions.			        ===
 // ================================================================
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
+void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1)
 float Pi2pi(float angle);
 
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext)
