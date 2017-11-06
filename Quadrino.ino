@@ -13,6 +13,7 @@
 #include "GPSFunc.h"
 #include "IMUFunc.h"
 #include "Clothoid.h"
+#include "CourseData.h"
 
 
 // ================================================================
@@ -41,6 +42,9 @@ float latlonCenter[2] = {0.5 * (latlonCp[0][0] + latlonCp[1][0]),0.5 * (latlonCp
 
 uint8_t sampleTimems = 10;
 
+int ID;
+float x=-5,y=-5,head,xNext,yNext,headNext;
+
 //  Setup Tasks
 //  -----------------------------------------------------------------------------
 Task T10ms(sampleTimems, TASK_FOREVER, &Task10ms, &runner,true);
@@ -61,6 +65,18 @@ void setup(){
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
+    for(int i=0;i<5;i++){                       //軌道生成デバッグ
+      float len,psi,phi1,h,phiV,phiU;
+      SetNextCourseData(&ID,&xNext,&yNext,&headNext);
+      GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);
+      //Serial.print("ID,");Serial.print(ID);
+      //Serial.print("len,");Serial.print(len);
+      //Serial.print("psi,");Serial.print(psi);
+      //Serial.print("phi1,");Serial.println(phi1);
+      CalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
+      CheckClothoid(x,y,head,h,phiV,phiU,10);
+      x = xNext;y = yNext;head = headNext;
+    }
     runner.startNow();
 }
 
@@ -107,8 +123,9 @@ void MakeTrajectory(void)
   //---------ここから作成する------------------
   len=10;psi=0.25*M_PI;phi0 = 0;phi1 = 0.5*M_PI;//ここにコースデータセット関数つくる
     //新規データセット時にクロソイドパラメータ読み込む
+    SetNextCourseData(&ID,&x,&y,&h);
     CalcClothoid(len,psi,phi0,phi1,&h,&phiV,&phiU,n);//クロソイドパラメータ
-  
+
   for(int8_t i=0;i<10;i++){
     float odo = (float)i * h * 0.1;
     Serial.print(",Cv,");Serial.println(CalcCurvature(h,phiV,phiU,odo));
