@@ -65,7 +65,7 @@ void setup(){
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
-    for(int i=0;i<5;i++){                       //軌道生成デバッグ
+    for(int i=0;i<GetCourseDataLen();i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
       GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);
