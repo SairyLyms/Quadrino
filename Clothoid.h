@@ -8,6 +8,7 @@ Complex slope(float phi0,float phiV, float phiU, float S);
 Complex CalcParamClothoid(float phiV,float phiU,int8_t n);
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n);
 float Newton(float psi,float phi0,float phi1,float phiU,int8_t n);
+float MaxVelocitymps(float curvature,float maxAy);
 
 //デバッグ用
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
@@ -35,11 +36,11 @@ float CalcCurvature(float h,float phiV,float phiU,float odo)
     return phiV / h;  //開始曲率を返す
   }
   else if(S > 1){
-    return (phiV + 2 * phiU) / h;  //終了曲率を返す
+    return (phiV + (2 * phiU)) / h;  //終了曲率を返す
   }
   else
   {
-    return (phiV + 2 * phiU * S) / h;  //旋回中曲率を返す
+    return (phiV + (2 * phiU * S)) / h;  //旋回中曲率を返す
   }
 }
 
@@ -76,14 +77,17 @@ void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,in
 {
   Complex integral = (0,0);// 積分結果
   float w = 1/(float)n;   // 積分範囲を n 個に分割したときの幅
-  float S;
+  float S,c;
   // === Simpson 法による積分 (開始） ===
   S = 0;
   for (int8_t i=0; i<n; i++) {
     integral += (slope(phi0, phiV, phiU, S) + slope(phi0, phiV, phiU, S+w)) * 0.5 * w;
-    S += w;
+    c = CalcCurvature(h,phiV, phiU,h*(S+w));
     Serial.print(",x,");Serial.print(x0 + h * integral.modulus()*cos(integral.phase()));
-    Serial.print(",y,");Serial.println(y0 + h * integral.modulus()*sin(integral.phase()));
+    Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
+    Serial.print(",vel,");Serial.print(3.6 * MaxVelocitymps(c,0.8 * 9.8));
+    Serial.println("");
+    S += w;    
   }
 }
 
@@ -115,4 +119,15 @@ float Newton(float psi,float phi0,float phi1,float phiU,int8_t n)  /* 初期値 
         if (phiU == phiU_prev && i == 1 ) break;
     }
     return phiU;
+}
+
+//ある横G内の限界コーナリング速度
+float MaxVelocitymps(float curvature,float maxAy)
+{
+  float maxVelocityVehicle = 60.0f;
+  float maxVelocityCorner = sqrtf(maxAy/fabs(curvature));
+  if(maxVelocityCorner > maxVelocityVehicle){
+    maxVelocityCorner = maxVelocityVehicle;
+  }
+  return maxVelocityCorner;
 }
