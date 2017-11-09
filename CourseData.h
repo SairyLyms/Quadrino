@@ -68,7 +68,7 @@ void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNe
     *NextCourseID >= numofID-1 ? *NextCourseID = 1 : (*NextCourseID)++;
     *xNext = (float)CourseData[*NextCourseID][0];
     *yNext = (float)CourseData[*NextCourseID][1];
-    *headNext =  (float)CourseData[*NextCourseID][2] * 0.001;
+    *headNext =  (float)CourseData[*NextCourseID][2] * 0.0001;
 }
 
 int16_t GetCourseDataLen(void)
