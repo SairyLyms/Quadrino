@@ -121,7 +121,7 @@ float Newton(float psi,float phi0,float phi1,float phiU,int8_t n)  /* 初期値 
     return phiU;
 }
 
-//ある横G内の限界コーナリング速度
+//ある横G内の旋回限界速度
 float MaxVelocitymps(float curvature,float maxAy)
 {
   float maxVelocityVehicle = 60.0f;
