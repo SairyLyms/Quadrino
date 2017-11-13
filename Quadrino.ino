@@ -43,7 +43,7 @@ float latlonCenter[2] = {0.5 * (latlonCp[0][0] + latlonCp[1][0]),0.5 * (latlonCp
 uint8_t sampleTimems = 10;
 
 int ID;
-float x=-5,y=-5,head,xNext,yNext,headNext;
+float x=0,y=0,head,xNext,yNext,headNext;
 
 //  Setup Tasks
 //  -----------------------------------------------------------------------------
@@ -128,7 +128,8 @@ void MakeTrajectory(void)
 
   for(int8_t i=0;i<10;i++){
     float odo = (float)i * h * 0.1;
-    Serial.print(",Cv,");Serial.println(CalcCurvature(h,phiV,phiU,odo));
+    CalcCurrentCurvature(h,phiV,phiU,odo,NULL);
+    Serial.print(",Cv,");Serial.println();//旋回半径表示させたい場合
   }
   //cv = CalcCurvature(h,phiV,phiU,odo);
 
