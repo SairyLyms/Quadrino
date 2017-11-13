@@ -150,27 +150,19 @@ void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* 
   float cvStart = phiV / h;  //開始曲率を返す
   float cvEnd = (phiV + (2 * phiU)) / h;  //終了曲率を返す
 
-  if(abs(cvStart) - abs(cvEnd) > 0){
-    *cvMax = cvStart;
-    *posCvMax = 0.0f;
-  }
-  else{
-    *cvMax = cvEnd;
-    *posCvMax = 1.0f;
-  }
   if(((cvStart > 0) - (cvStart < 0)) == ((cvEnd > 0) - (cvEnd < 0)))
   {
-    if(abs(cvStart) - abs(cvEnd) < 0){
-      *cvMin = cvStart;
-      *posCvMin = 0.0f;
+    if(abs(cvStart) - abs(cvEnd) >= 0){
+      *cvMax = cvStart;
+      *posCvMax = 0.0f;
     }
     else{
-      *cvMin = cvEnd;
-      *posCvMin = 1.0f;
+      *cvMax = cvEnd;
+      *posCvMax = 1.0f;
     }
   }
   else{
-    *cvMin = 0;
+    *cvMin = 0.0f;
     *posCvMin = - cvStart / (cvEnd - cvStart);
   }
 }
