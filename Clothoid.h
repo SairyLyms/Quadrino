@@ -96,8 +96,9 @@ void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,in
     Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
     Serial.print(",PosCvMax,");Serial.print(posCvMax);Serial.print(",CvMax,");Serial.print(cvMax);
     Serial.print(",PosCvMin,");Serial.print(posCvMin);Serial.print(",CvMin,");Serial.print(cvMin);
-    Serial.print(",velMax,");Serial.print(MaxVelocitymps(cv0,0.3 * 9.8));
-    Serial.print(",velMaxSector,");Serial.print(MaxVelocitymps(cvMax,0.3 * 9.8));
+    Serial.print(",velMax,");
+    posCvMax < posCvMin ? Serial.print(MaxVelocitymps(cv0,0.2 * 9.8)) : Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
+    Serial.print(",velMaxSector,");Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
     Serial.println("");
     S += w;    
   }
