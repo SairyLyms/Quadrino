@@ -9,7 +9,7 @@ Complex CalcParamClothoid(float phiV,float phiU,int8_t n);
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n);
 float Newton(float psi,float phi0,float phi1,float phiU,int8_t n);
 float MaxVelocitymps(float curvature,float maxAy);
-void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax,float* cvMin,float* posMin);
+void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax,float* cvMin,float* posMin,float* deltaCv);
 float AccelBasedCv(float cv0,float cv1);
 float VelocityCv(float velCur,float velLim,float axLim);
 
@@ -81,11 +81,11 @@ void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,in
 {
   Complex integral = (0,0);// 積分結果
   float w = 1/(float)n;   // 積分範囲を n 個に分割したときの幅
-  float S,cv0,cv1,posCvMax,posCvMin,cvMax,cvMin,maxVelocitySector;
+  float S,cv0,cv1,posCvMax,posCvMin,cvMax,cvMin,maxVelocitySector,deltaCv;
   static float lengthTotal,velocity;
   // === Simpson 法による積分 (開始） ===
   S = 0;
-  CvMaxMin(h,phiV,phiU,&posCvMax,&cvMax,&posCvMin,&cvMin);//区間最大曲率
+  CvMaxMin(h,phiV,phiU,&posCvMax,&cvMax,&posCvMin,&cvMin,&deltaCv);//区間最大曲率
   for (int8_t i=0; i<n; i++){
     lengthTotal += h/n;
     integral += (slope(phi0, phiV, phiU, S) + slope(phi0, phiV, phiU, S+w)) * 0.5 * w;
@@ -94,8 +94,9 @@ void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,in
     Serial.print(",len,");Serial.print(lengthTotal);
     Serial.print(",x,");Serial.print(x0 + h * integral.modulus()*cos(integral.phase()));
     Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
-    Serial.print(",PosCvMax,");Serial.print(posCvMax);Serial.print(",CvMax,");Serial.print(cvMax);
-    Serial.print(",PosCvMin,");Serial.print(posCvMin);Serial.print(",CvMin,");Serial.print(cvMin);
+    Serial.print(",PosCvMax,");Serial.print(posCvMax);Serial.print(",CvMax,");Serial.print(cvMax,8);
+    Serial.print(",PosCvMin,");Serial.print(posCvMin);Serial.print(",CvMin,");Serial.print(cvMin,8);
+    Serial.print(",DeltaCv,");Serial.print(deltaCv,8);
     Serial.print(",velMax,");
     posCvMax < posCvMin ? Serial.print(MaxVelocitymps(cv0,0.2 * 9.8)) : Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
     Serial.print(",velMaxSector,");Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
@@ -146,13 +147,14 @@ float MaxVelocitymps(float curvature,float maxAy)
 }
 
 //クロソイド曲線区間における最大曲率と最小曲率、それぞれの区間開始からの距離(旋回速度算出用)
-void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* posCvMin,float* cvMin)
+void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* posCvMin,float* cvMin,float* deltaCv)
 {
   float cvStart = phiV / h;  //開始曲率を返す
   float cvEnd = (phiV + (2 * phiU)) / h;  //終了曲率を返す
+  float vdeltaCv = (abs(cvStart) - abs(cvEnd));
   if(((cvStart > 0) - (cvStart < 0)) == ((cvEnd > 0) - (cvEnd < 0)))
   {
-    if(abs(cvStart) - abs(cvEnd) >= 0){
+    if(vdeltaCv <= 0){
       *cvMax = cvStart;
       *posCvMax = 0.0f;
       *cvMin = cvEnd;
@@ -171,7 +173,9 @@ void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* 
     *cvMax = max(abs(cvStart),abs(cvEnd));
     *posCvMin > 0.5 ?  *posCvMax = 0.0f : *posCvMax = 1.0f; 
   }
+  *deltaCv = vdeltaCv / *cvMax;
 }
+
 
 //加減速判定　重要なのはクロソイドセグメントの「距離に対する曲率の傾き」から加速すべきか減速すべきか判定する
 float AccelBasedCv(float cv0,float cv1)
