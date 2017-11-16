@@ -65,6 +65,7 @@ void setup(){
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
+    #if 0
     for(int i=0;i<GetCourseDataLen();i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
@@ -77,6 +78,8 @@ void setup(){
       CheckClothoid(x,y,head,h,phiV,phiU,10);
       x = xNext;y = yNext;head = headNext;
     }
+    #endif
+    SetVelocityLimInit(20.0f);
     runner.startNow();
 }
 
