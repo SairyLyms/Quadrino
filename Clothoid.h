@@ -13,8 +13,6 @@ void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax
 float AccelBasedCv(float cv0,float cv1);
 float VelocityCv(float velCur,float velLim,float axLim);
 
-
-//デバッグ用
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
 /************************************************************************
  * FUNCTION : クロソイド曲線用関数群(20msほど必要)
@@ -77,7 +75,7 @@ Complex CalcParamClothoid(float phiV,float phiU,int8_t n)
 }
 
 //デバッグ用
-void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,int8_t n)
+void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,float phiU,float velLimit,int8_t n)
 {
   Complex integral = (0,0);// 積分結果
   float w = 1/(float)n;   // 積分範囲を n 個に分割したときの幅
@@ -85,21 +83,16 @@ void CheckClothoid(float x0,float y0,float phi0,float h,float phiV,float phiU,in
   static float lengthTotal,velocity;
   // === Simpson 法による積分 (開始） ===
   S = 0;
-  CvMaxMin(h,phiV,phiU,&posCvMax,&cvMax,&posCvMin,&cvMin,&deltaCv);//区間最大曲率
+  //CvMaxMin(h,phiV,phiU,&posCvMax,&cvMax,&posCvMin,&cvMin,&deltaCv);//区間最大曲率
   for (int8_t i=0; i<n; i++){
     lengthTotal += h/n;
     integral += (slope(phi0, phiV, phiU, S) + slope(phi0, phiV, phiU, S+w)) * 0.5 * w;
     CalcCurrentCurvature(h,phiV,phiU,h*(S),&cv0);
-    CalcCurrentCurvature(h,phiV,phiU,h*(S+w),&cv1);
     Serial.print(",len,");Serial.print(lengthTotal);
     Serial.print(",x,");Serial.print(x0 + h * integral.modulus()*cos(integral.phase()));
     Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
-    Serial.print(",PosCvMax,");Serial.print(posCvMax);Serial.print(",CvMax,");Serial.print(cvMax,8);
-    Serial.print(",PosCvMin,");Serial.print(posCvMin);Serial.print(",CvMin,");Serial.print(cvMin,8);
-    Serial.print(",DeltaCv,");Serial.print(deltaCv,8);
     Serial.print(",velMax,");
-    posCvMax < posCvMin ? Serial.print(MaxVelocitymps(cv0,0.2 * 9.8)) : Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
-    Serial.print(",velMaxSector,");Serial.print(MaxVelocitymps(cvMax,0.2 * 9.8));
+    velLimit < cv0 ? Serial.print(velLimit) : Serial.print(MaxVelocitymps(cv0,0.5 * 9.8));
     Serial.println("");
     S += w;    
   }

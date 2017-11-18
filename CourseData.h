@@ -61,14 +61,26 @@ float Pi2pi(float angle)
 // ================================================================
 uint16_t *velLimInitp;
 //コース一周分の大体の最高速度を各区間の初期リミット速度としてセットする
-void SetVelocityLimInit(float velLimitMax)
+void SetVelocityLimInit(float velLimitMax,float ayLim)
 {   int NextCourseID = 0;
     float cvMax=0,deltaCv=0,cvMaxPrev=0,deltaCvPrev=0;
     float x=0,y=0,head=0,xNextL=0,yNextL=0,headNextL=0;
     velLimInitp = (uint16_t *)calloc(GetCourseDataLen(),sizeof(uint16_t));
     for(int j=0;j<2;j++){//スタート軌跡とゴール軌跡を接続させるため2周分演算する
-        for(int i=0;i<GetCourseDataLen();i++){
+        int i,courseDatalen;
+        if(j==0){
+            NextCourseID = 1;
+            i = 0;
+            courseDatalen = GetCourseDataLen();
+        }
+        else{     
+            NextCourseID = 2;
+            i = 3;
+            courseDatalen = GetCourseDataLen();
+        }
+        for(int k = 0;k < courseDatalen;k++){
             float len,psi,phi1,h,phiV,phiU;
+#if 1
             SetNextCourseData(&NextCourseID,&xNextL,&yNextL,&headNextL);
             GetLenAndDirection(x, y, head,xNextL,yNextL,headNextL,&len,&psi,&phi1);
             CalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
@@ -78,30 +90,22 @@ void SetVelocityLimInit(float velLimitMax)
                 velLimInitp[i] = velLimitMax * 1000;
             }
             else{
-                velLimInitp[i] = MaxVelocitymps(cvMax,0.5 * 9.8) * 1000;
-                i > 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[i-1] = MaxVelocitymps(cvMax,0.5 * 9.8) * 1000 : 0;
+                velLimInitp[i] = MaxVelocitymps(cvMax,ayLim) * 1000;
+                i > 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[i-1] = MaxVelocitymps(cvMax,ayLim) * 1000 : 0;
+                i == 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[GetCourseDataLen()-1] = MaxVelocitymps(cvMax,ayLim) * 1000 : 0;
             }
             cvMaxPrev = cvMax;deltaCvPrev = deltaCv;
             x = xNextL;y = yNextL;head = headNextL;
-        }
-        if(j==1){           //2周分演算した場合のセグメントずれ対策
-            uint16_t buf = velLimInitp[GetCourseDataLen()-1]; //最後の配列をバッファに
-            for(int i=0;i<GetCourseDataLen();i++){
-                if(i < GetCourseDataLen()-1){
-                    velLimInitp[(GetCourseDataLen()-1) - i] = velLimInitp[(GetCourseDataLen()-2) - i];
-                }
-                else{
-                    velLimInitp[0] =  buf;
-                }
-            }
+            i >= courseDatalen-1 ? i = 1 : i++;
+#endif    
         }
     }
-    #if 1
+#if 1//セグメント毎制限速度確認デバッグ用
     for(int i=0;i<GetCourseDataLen();i++){
         Serial.print(",Segment,");Serial.print(i);
         Serial.print(",VelLim,");Serial.print(velLimInitp[i]);
         Serial.println("");
     }
-    #endif
+#endif
 }
 
