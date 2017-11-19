@@ -15,12 +15,14 @@ int16_t CourseData[][3]    = {{0  , 0, 0         },  //初期位置(0,0,0)
 };
 float courseScale = 1;
 const int lenCourseData = sizeof(CourseData)/sizeof(CourseData[0]);
+uint16_t velLimInitp[lenCourseData];
 // ================================================================
 // ===              	Course Data Functions.			        ===
 // ================================================================
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1);
 float Pi2pi(float angle);
+void SetVelocityLimInit(float velLimitMax,float ayLim);
 
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext)
 {
@@ -52,7 +54,6 @@ float Pi2pi(float angle)
 // ================================================================
 // ===              	Velocity info Def.  			        ===
 // ================================================================
-uint16_t velLimInitp[lenCourseData];
 //コース一周分の大体の最高速度を各区間の初期リミット速度としてセットする
 void SetVelocityLimInit(float velLimitMax,float ayLim)
 {   int NextCourseID = 0;

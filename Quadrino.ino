@@ -66,18 +66,28 @@ void setup(){
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
     SetVelocityLimInit(20.0f,0.5f*9.8f);//初回区間速度制限
+#if 0
     for(int i=0;i<lenCourseData;i++){
       Serial.print("velLimInit,");Serial.println((float)velLimInitp[i] * 0.001);
     }
+#endif
 #if 1
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
+      Serial.print("ID,");Serial.print(ID);
+      Serial.print("xNext,");Serial.print(xNext);
+      Serial.print("yNext,");Serial.print(yNext);
+      Serial.print("headNext,");Serial.print(headNext);
+      len = sqrtf(pow(xNext - x,2) + pow(yNext - y,2));
+      psi = Pi2pi(atan2f(yNext - y,xNext - x)-head);
+      phi1 = Pi2pi(headNext - head);
       //GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);  //実行するとなぜか速度制限情報も消える
       Serial.print("ID,");Serial.print(ID);
       Serial.print("len,");Serial.print(len);
       Serial.print("psi,");Serial.print(psi);
       Serial.print("phi1,");Serial.println(phi1);
+      Serial.print("velLimInit,");Serial.println((float)velLimInitp[ID] * 0.001);
       //Serial.print("VelLim,");Serial.println(velLimInitp[ID]);
       //CalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
       //CheckClothoidwVelLimut(x,y,head,h,phiV,phiU,10,(float)velLimInitp[ID] * 0.001);
