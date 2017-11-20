@@ -8,11 +8,8 @@ Complex slope(float phi0,float phiV, float phiU, float S);
 Complex CalcParamClothoid(float phiV,float phiU,int8_t n);
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n);
 float Newton(float psi,float phi0,float phi1,float phiU,int8_t n);
-float MaxVelocitymps(float curvature,float maxAy);
+float MaxVelocitymps(float curvature,float velLimitMax,float maxAy);
 void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax,float* cvMin,float* posMin,float* deltaCv);
-float AccelBasedCv(float cv0,float cv1);
-float VelocityCv(float velCur,float velLim,float axLim);
-
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
 /************************************************************************
  * FUNCTION : クロソイド曲線用関数群(20msほど必要)
@@ -75,7 +72,7 @@ Complex CalcParamClothoid(float phiV,float phiU,int8_t n)
 }
 
 //デバッグ用
-void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,float phiU,float velLimit,int8_t n)
+void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,float phiU,float velLimit,float velLimitMax,float ayLimit,int8_t n)
 {
   Complex integral = (0,0);// 積分結果
   float w = 1/(float)n;   // 積分範囲を n 個に分割したときの幅
@@ -92,7 +89,7 @@ void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,floa
     Serial.print(",x,");Serial.print(x0 + h * integral.modulus()*cos(integral.phase()));
     Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
     Serial.print(",velMax,");
-    velLimit < cv0 ? Serial.print(velLimit) : Serial.print(MaxVelocitymps(cv0,0.5 * 9.8));
+    velLimit < MaxVelocitymps(cv0,velLimitMax,ayLimit) ? Serial.print(velLimit) : Serial.print(MaxVelocitymps(cv0,velLimitMax,ayLimit));
     Serial.println("");
     S += w;    
   }
@@ -129,12 +126,11 @@ float Newton(float psi,float phi0,float phi1,float phiU,int8_t n)  /* 初期値 
 }
 
 //ある横G以下の旋回限界速度
-float MaxVelocitymps(float curvature,float maxAy)
+float MaxVelocitymps(float curvature,float velLimitMax,float maxAy)
 {
-  float maxVelocityVehicle = 20.0f;
   float maxVelocityCorner = sqrtf(maxAy/fabs(curvature));
-  if(maxVelocityCorner > maxVelocityVehicle){
-    maxVelocityCorner = maxVelocityVehicle;
+  if(maxVelocityCorner > velLimitMax){
+    maxVelocityCorner = velLimitMax;
   }
   return maxVelocityCorner;
 }
@@ -167,27 +163,4 @@ void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* 
     *posCvMin > 0.5 ?  *posCvMax = 0.0f : *posCvMax = 1.0f; 
   }
   *deltaCv = vdeltaCv / *cvMax;
-}
-
-
-//加減速判定　重要なのはクロソイドセグメントの「距離に対する曲率の傾き」から加速すべきか減速すべきか判定する
-float AccelBasedCv(float cv0,float cv1)
-{
- float limAxAcc = 0.3,limAxDec = -0.5;
- float ax = MaxVelocitymps(cv1,0.8 * 9.8) - MaxVelocitymps(cv0,0.8 * 9.8);
- if(ax > limAxAcc){
-  ax = limAxAcc;
- }
- else if(ax < limAxDec){
-  ax = limAxDec;
- }
- return ax;
-}
-
-//速度
-float VelocityCv(float velCur,float velLim,float axLim)
-{
-  float velocity = velCur + axLim * 0.001;
-  velocity > velLim ? velocity = velLim : 0;
-  return velocity;
 }
