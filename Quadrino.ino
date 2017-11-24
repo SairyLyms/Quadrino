@@ -10,11 +10,10 @@
 #include <I2Cdev.h>
 #include <MPU6050.h>
 #include <complex.h>
+#include "CourseData.h"
 #include "GPSFunc.h"
 #include "IMUFunc.h"
-#include "Clothoid.h"
-#include "CourseData.h"
-
+#include "Trajectory.h"
 
 // ================================================================
 // ===              	Prototype Def.			                      ===
@@ -71,7 +70,7 @@ void setup(){
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
       GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);
-      CalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
+      SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
       CheckClothoidwVelLimut(x,y,head,h,phiV,phiU,(float)velLimInitp[ID] * 0.001,20.0f,0.5 * 9.8,10);
       x = xNext;y = yNext;head = headNext;
     }
@@ -123,7 +122,7 @@ void MakeTrajectory(void)
   len=10;psi=0.25*M_PI;phi0 = 0;phi1 = 0.5*M_PI;//ここにコースデータセット関数つくる
     //新規データセット時にクロソイドパラメータ読み込む
     SetNextCourseData(&ID,&x,&y,&h);
-    CalcClothoid(len,psi,phi0,phi1,&h,&phiV,&phiU,n);//クロソイドパラメータ
+    SetCalcClothoid(len,psi,phi0,phi1,&h,&phiV,&phiU,n);//クロソイドパラメータ
 
   for(int8_t i=0;i<10;i++){
     float odo = (float)i * h * 0.1;
