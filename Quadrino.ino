@@ -14,6 +14,7 @@
 #include "GPSFunc.h"
 #include "IMUFunc.h"
 #include "Trajectory.h"
+#include "Control.h"
 
 // ================================================================
 // ===              	Prototype Def.			                      ===
@@ -44,11 +45,12 @@ uint8_t sampleTimems = 10;
 int ID = 0;
 float x=0,y=0,head,xNext,yNext,headNext;
 
+int8_t stateMode = 0;
+
 //  Setup Tasks
 //  -----------------------------------------------------------------------------
 Task T10ms(sampleTimems, TASK_FOREVER, &Task10ms, &runner,true);
 Task T20ms(sampleTimems * 2, TASK_FOREVER, &Task20ms, &runner,true);
-
 
 void setup(){
     Serial.begin(115200);            // Start Serial Port at 57600 baud
@@ -64,8 +66,8 @@ void setup(){
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
-    SetVelocityLimInit(20.0f,0.5f*9.8f,velLimInitp);//初回区間速度制限
-#if 1
+    SetVelocityLimInit(20.0f,0.5f*9.8f,velLimInitp);//初回コース速度制限
+#if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
@@ -160,6 +162,7 @@ void getSampletime(unsigned long* timems,float *sampletimes)
  {
   getSampletime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
+  stateMode = SMHeadCalib(stateMode);  
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
   Serial.print(",YawRt,");Serial.print(yawRt);Serial.print(",yawAg,");Serial.print(yawAngle);
   Serial.print(",E,");Serial.print(e);Serial.print(",N,");Serial.print(n);Serial.print(",U,");Serial.print(u);
