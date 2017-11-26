@@ -14,7 +14,7 @@ int8_t StateManager(float e,float n,int8_t stateMode){
 
 /************************************************************************
  * FUNCTION : 状態管理
- * INPUT    : 原点からの位置座標(E,N)
+ * INPUT    : 原点__からの位置座標(E,N)
  *
  * OUTPUT   : 状態値
  ***********************************************************************/
@@ -46,3 +46,8 @@ int8_t SMHeadCalib(int8_t stateMode)
     return stateMode;
 }
 
+int8_t SMChangeRunState(int8_t stateMode)
+{
+    stateMode ^= 0x10; 
+    return stateMode;
+}
