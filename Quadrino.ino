@@ -10,6 +10,7 @@
 #include <I2Cdev.h>
 #include <MPU6050.h>
 #include <complex.h>
+#include <Servo.h>
 #include "CourseData.h"
 #include "GPSFunc.h"
 #include "IMUFunc.h"
@@ -27,6 +28,7 @@ void Task20ms(void);
 MPU6050 accelGyro;
 Madgwick AHRS;
 Scheduler runner;
+Servo FStr,PowUnit;
 
 //  Setup Grobal Variables
 //  -----------------------------------------------------------------------------
@@ -34,6 +36,9 @@ unsigned long timems = millis();
 float sampletimes;
 float e,n,u,velmps,heading;
 float yawRt,yawAngle;
+float strPWM = 90,puPWM = 90;
+float headingOffset = 0;
+float strPwmOffset = 90;
 
 float x0 = 0.0f,y0 = 0.0f,z0 = 0.0f;
 float latlonCp[2][2] = {{36.567932, 139.995764},{36.567874, 139.995761}};
@@ -61,6 +66,8 @@ void setup(){
     Llh2Ecef(latlonCenter[0] * M_PI / 180.0f,latlonCenter[1] * M_PI / 180.0f,heightCenter,&x0,&y0,&z0); //原点座標設定
     accelGyro.initialize();
     SetParamIMU();
+    FStr.attach(9,1000,2000);
+    PowUnit.attach(8,1000,2000);
     AHRS.begin(100.0f);
     Serial.print("heightElp,");Serial.print(heightCenter);
     Serial.print("x0,");Serial.print(x0);
@@ -140,7 +147,7 @@ void MakeTrajectory(void)
  * INPUT    : なし
  * OUTPUT   : なし
  ***********************************************************************/
-void getSampletime(unsigned long* timems,float *sampletimes)
+void GetSampleTime(unsigned long* timems,float *sampletimes)
 {
   unsigned long time = millis();
   if(!timems){
@@ -160,14 +167,18 @@ void getSampletime(unsigned long* timems,float *sampletimes)
  ***********************************************************************/
  void Task10ms(void)
  {
-  getSampletime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
+  GetSampleTime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
-  stateMode = SMHeadCalib(stateMode);  
+  stateMode = StateManager(0,0,stateMode);
+  VehicleMotionControl(stateMode);  
+  Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
+#if 0
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
   Serial.print(",YawRt,");Serial.print(yawRt);Serial.print(",yawAg,");Serial.print(yawAngle);
   Serial.print(",E,");Serial.print(e);Serial.print(",N,");Serial.print(n);Serial.print(",U,");Serial.print(u);
   Serial.print(",Vel,");Serial.print(velmps);Serial.print(",Head,");Serial.print(heading);
   Serial.println(",");
+#endif
  }
  
  /************************************************************************
