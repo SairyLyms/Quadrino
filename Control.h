@@ -19,7 +19,7 @@ float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime);
 int8_t StateManager(float e,float n,int8_t stateMode){
     int8_t key = 0;
     stateMode = SMLimitArea(e,n,stateMode);
-    if(stateMode & 0x01){                                        //走行可能範囲内の場合
+    if(stateMode & 0x01){                                        //走行可能範囲内(stateModeの0ビット目 == 1)の場合
         switch(stateMode){
             case 0x01:  Serial.println("To start hading calib, Send 'c'");
                         while(!Serial.available());
@@ -27,14 +27,15 @@ int8_t StateManager(float e,float n,int8_t stateMode){
                         stateMode = SMHeadCalib(stateMode);  
                         break;
             case 0x03:
-            case 0x05:  stateMode = SMHeadCalib(stateMode);
+            case 0x05:  
+            case 0x07:  stateMode = SMHeadCalib(stateMode);
                         break;
-            case 0x07:  Serial.println("To start a vehicle , Send 'r' , To stop , Send 'Any' key... ");
+            case 0x09:  Serial.println("To start a vehicle , Send 'r' , To stop , Send 'Any' key... ");
                         while(!Serial.available());
                         while(Serial.read() != 'r');
                         stateMode = SMChangeRunState(stateMode);    //走行開始
                         break;
-            case 0x17:  key = Serial.read();
+            case 0x19:  key = Serial.read();
                         if(key > 0 && key !=0x0A && key != 0x0D){
                             stateMode = SMChangeStopState(stateMode);    //走行終了
                         }
@@ -71,39 +72,46 @@ int8_t SMHeadCalib(int8_t stateMode)
 {
     static uint16_t calibTime = 0;
     if(calibTime < 200){        //200サイクルまではキャリブ実施せず
-        stateMode == 0x01 ? stateMode |= 0x02 : 0;      //方位キャリブレーション事前走行中(0x03)
+        stateMode >> 1 == 0x00 ? stateMode = (stateMode &= ~0x0E) |= 0x01 << 1 : 0;      //方位キャリブレーション事前走行中(0x03) ビットマスクして0x01<<1を書き込み
         calibTime++;
     }
     else if(calibTime < 500){   //200サイクル超でキャリブ実施
-        stateMode == 0x03 ? stateMode ^= 0x06 : 0;      //方位キャリブレーション走行中(0x05)
+        stateMode >> 1 == 0x01 ? stateMode = (stateMode &= ~0x0E) |= 0x02 << 1 : 0;      //方位キャリブレーション走行中(0x05)
         calibTime++;
     }
-    else {
-        stateMode == 0x05 ? stateMode ^= 0x02 : 0;      //方位キャリブレーション済(0x07)
+    else if(calibTime == 500){
+        stateMode >> 1 == 0x02 ? stateMode = (stateMode &= ~0x0E) |= 0x03 << 1 : 0;      //方位キャリブレーション書き込み(0x07)
+        calibTime++;        
+    }
+    else{
+        stateMode >> 1 == 0x03 ? stateMode = (stateMode &= ~0x0E) |= 0x04 << 1 : 0;      //方位キャリブレーション完了(0x09)
+        calibTime = 0;          //再キャリブ用にリセットしておく
     }
     return stateMode;
 }
 
 int8_t SMChangeRunState(int8_t stateMode)
 {
-    stateMode == 0x07 ? stateMode ^= 0x10 : 0; 
+    stateMode >> 4 == 0x00 ? stateMode = (stateMode &= ~0x10) ^= 0x01 << 4 : 0;         //走行開始(0x19)
     return stateMode;
 }
 
 int8_t SMChangeStopState(int8_t stateMode)
 {
-    stateMode &= ~0x10;
+    stateMode >> 4 == 0x01 ? stateMode = (stateMode &= ~0x10) : 0;                      //停止(0x09)
     return stateMode;
 }
 
 void VehicleMotionControl(int8_t stateMode)
 {
     switch(stateMode){
-        case 0x03:
-        case 0x05:
-        case 0x07:  VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション
+        case 0x03:  //キャリブレーション事前走行中
+        case 0x05:  //キャリブレーション走行中
+        case 0x07:  VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
                     break;
-        case 0x17:  //通常走行
+        case 0x09:  //停止
+                    break;
+        case 0x19:  //通常走行
                     break;
         default  :  strPWM = 90;
                     puPWM = 90;
