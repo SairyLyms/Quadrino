@@ -1,8 +1,13 @@
 
-#define LimitAreaRun 30.0f //走行可能範囲(m)
+#define LimitAreaRun 30.0f  //走行可能範囲(m)
+#define PWMInitCenter 90.0f //PWM初期中点値
+#define AyLim 9.8 * 0.5f          //限界横G
 
-extern float yawRt,sampletimes,heading,headingOffset,strPwmOffset,strPWM,puPWM;
+extern float yawAngle,yawRt,sampletimes,heading,headingOffset,strPwmOffset,strPWM,puPWM,velmps;
 extern Servo FStr,PowUnit;
+extern int ID;
+extern float x,y,head,xNext,yNext,headNext;
+extern float h,phiV,phiU,odo;
 
 int8_t StateManager(float e,float n,int8_t stateMode);
 int8_t SMLimitArea(float e,float n,int8_t stateMode);
@@ -12,7 +17,8 @@ int8_t SMChangeStopState(int8_t stateMode);
 void VehicleMotionControl(int8_t stateMode);
 void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM);
 void VMCRunNorm(void);
-void VMCStop(void);
+void VMCStop(float *strPWM,float *puPWM);
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffset,float *headingOut);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime);
 
@@ -123,46 +129,72 @@ void VehicleMotionControl(int8_t stateMode)
 }
 
 //キャリブレーション走行  
-void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM)
+void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float headingGPS,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM)
 {
-    static float bufx = cos(heading),bufy = sin(heading);
+    static float strPWMoffsetFromCenter = 0;
+    static float bufx = 0,bufy = 0;
     if(stateMode == 0x03 || stateMode == 0x05){
+        *strPWM = StrControlPID(currentYawRate,0.0f,sampleTime,90);        
         *puPWM = 110;
     }
     else{
+        *strPWM = 90;
         *puPWM = 90;
     }
-    if(stateMode == 0x03){
-        *strPWM = StrControlPID(currentYawRate,0.0f,sampleTime,90);
-    }
-    else if(stateMode == 0x05){
-        *strPWM = StrControlPID(currentYawRate,0.0f,sampleTime,90);
-        bufx = 0.5 * (bufx + cos(heading));
-        bufy = 0.5 * (bufy + sin(heading));
-        *strPwmOffset = 0.5 * (*strPwmOffset + *strPWM);
+    if(stateMode == 0x05){
+        bufx += cos(headingGPS - yawAngle);
+        bufy += sin(headingGPS - yawAngle);
+        strPWMoffsetFromCenter = *strPWM - 90;
     }
     else if(stateMode == 0x07){
         if(!*headingOffset){
             *headingOffset = atan2f(bufy,bufx);
-            *strPwmOffset = 0.5 * (*strPwmOffset + *strPWM);
+            *strPwmOffset = strPWMoffsetFromCenter / 300 + 90;
         }
-        *strPWM = 90;
+        bufx = 0;
+        bufy = 0;
+        strPWMoffsetFromCenter = 0;
     }
 }
 //通常走行
-void VMCRunNorm(void)
+void VMCRunNorm(float *strPWM,float *puPWM)
 {
+    float len,psi,phi1,cvCul,maxVel;
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
-    //
-
+    if(odo >= h){
+        SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
+        SetNextCourseData(&ID,&xNext,&yNext,&headNext);
+        GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);
+        SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
+        odo = 0;
+    }
+    CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
+    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim,&maxVel);
+    *strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);  
+    *puPWM = SpdControlPID(velmps,maxVel,sampletimes);
+    odo += velmps * sampletimes;
 }
 //停止
 void VMCStop(float *strPWM,float *puPWM)
 {
+    ID = 0;
+    x = 0;y = 0;head = 0;xNext = 0;yNext = 0;headNext = 0;
+    h=0;phiV=0;phiU=0;odo=0;   
     *strPWM = 90;
     *puPWM = 90;
 }
 
+//速度に応じてHeading情報持ちかえる
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffset,float *headingOut)
+{
+    if(velocityMps > 1.0f){
+        *headingOut = headingGPS;
+        *headingOffset = Pi2pi(-yawAngle + headingGPS);
+    }
+    else{
+        *headingOut = yawAngle + *headingOffset;
+    }
+}
 /************************************************************************
  * FUNCTION : 操舵制御指示値演算(ヨーレートフィードバック)
  * INPUT    : CPまでの目標ヨーレート、現在ヨーレート

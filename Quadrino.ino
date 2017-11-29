@@ -49,6 +49,7 @@ uint8_t sampleTimems = 10;
 
 int ID = 0;
 float x=0,y=0,head,xNext,yNext,headNext;
+float h,phiV,phiU,odo;
 
 int8_t stateMode = 0;
 
@@ -73,7 +74,7 @@ void setup(){
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.println(z0);
-    SetVelocityLimInit(20.0f,0.5f*9.8f,velLimInitp);//初回コース速度制限
+    SetVelocityLimInit(20.0f,AyLim,velLimInitp);//初回コース速度制限
 #if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;

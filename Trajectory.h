@@ -8,6 +8,7 @@ Complex CalcParamClothoid(float phiV,float phiU,int8_t n);
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n);
 float Newton(float psi,float phi0,float phi1,float phiU,int8_t n);
 float MaxVelocitymps(float curvature,float velLimitMax,float maxAy);
+void MaxVelocitympsP(float curvature,float velLimitMax,float maxAy,float *maxVelocity);
 void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax,float* cvMin,float* posMin,float* deltaCv);
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
@@ -155,6 +156,11 @@ float MaxVelocitymps(float curvature,float velLimitMax,float maxAy)
     maxVelocityCorner = velLimitMax;
   }
   return maxVelocityCorner;
+}
+//ポインタ返し版
+void MaxVelocitympsP(float curvature,float velLimitMax,float maxAy,float *maxVelocity)
+{
+  *maxVelocity = MaxVelocitymps(curvature,velLimitMax,maxAy);  
 }
 
 /************************************************************************
