@@ -110,15 +110,16 @@ void VehicleMotionControl(int8_t stateMode)
         case 0x07:  VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
                     break;
         case 0x09:  //停止
+                    VMCStop(&strPWM,&puPWM);
                     break;
         case 0x19:  //通常走行
                     break;
-        default  :  strPWM = 90;
-                    puPWM = 90;
+        default  :  //停止
+                    VMCStop(&strPWM,&puPWM);
                     break;
     }
-    FStr.write((int)strPWM);
-    PowUnit.write((int)puPWM);
+    FStr.write((int)strPWM);            //操舵指示
+    PowUnit.write((int)puPWM);          //駆動指示
 }
 
 //キャリブレーション走行  
@@ -151,13 +152,15 @@ void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float h
 //通常走行
 void VMCRunNorm(void)
 {
+    //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
+    //
 
 }
 //停止
-void VMCStop(void)
+void VMCStop(float *strPWM,float *puPWM)
 {
-    FStr.write(90);
-    PowUnit.write(90);
+    *strPWM = 90;
+    *puPWM = 90;
 }
 
 /************************************************************************
