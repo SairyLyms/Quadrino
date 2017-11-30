@@ -8,7 +8,8 @@
 #define E2				((1.0/ONE_F)*(2-(1.0/ONE_F)))
 #define NN(lat)			(A/sqrt(1.0 - (E2)*pow(sin(lat),2)))
 
-void Llh2Ecef(float latRad,float lonRad,float height,float* x,float *y,float *z);
+void Llh2Ecef(float latRad,float lonRad,float height,float *x,float *y,float *z);
+void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P);
 void GetPosENU(float* e,float *n,float *u ,float x0, float y0, float z0);
 void GetVelAndHead(float* velmps,float* heading);
 void RotAroudX(float* x,float* y,float* z,float angleRad);
@@ -16,15 +17,31 @@ void RotAroudY(float* x,float* y,float* z,float angleRad);
 void RotAroudZ(float* x,float* y,float* z,float angleRad);
 
 //緯度経度からECEF座標への変換(コース情報生成用)
-void Llh2Ecef(float latRad,float lonRad,float height,float* x,float *y,float *z)
+void Llh2Ecef(float latRad,float lonRad,float height,float *x,float *y,float *z)
 {
   *x = (NN(latRad) + height) * cos(latRad) * cos(lonRad);
   *y = (NN(latRad) + height) * cos(latRad) * sin(lonRad);
   *z = (NN(latRad) * (1.0f-E2) + height) * sin(latRad);
 }
 
+//2点間の方位取得(コース情報生成用)
+//要デバッグ
+void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P)
+{
+  float x[2] = {},y[2] = {},z[2] = {};
+  for(int8_t i = 0;i<2;i++){
+    Serial.print(",lat,");Serial.print(latLon[i][0],8);Serial.print(",lon,");Serial.println(latLon[i][1],8);    
+    Llh2Ecef(latLon[i][0] * M_PI / 180,latLon[i][1] * M_PI / 180,height,&x[i],&y[i],&z[i]);
+    RotAroudZ(&x[i],&y[i],&z[i],0.5*M_PI);
+    RotAroudY(&x[i],&y[i],&z[i],(0.5*M_PI - latLon[i][0] * M_PI / 180));
+    RotAroudZ(&x[i],&y[i],&z[i],latLon[i][1] * M_PI / 180);
+  }
+  Serial.print(",x,");Serial.print(x[0]-x[1]);Serial.print(",y,");Serial.println(y[0]-y[1]);      
+  *directionP2P = atan2f(y[0]-y[1],-(x[0]-x[1]));
+}
+
 //原点からのENU座標
-void GetPosENU(float* e,float *n,float *u ,float x0, float y0, float z0)
+void GetPosENU(float *e,float *n,float *u ,float x0, float y0, float z0)
 {
   float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
   float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;

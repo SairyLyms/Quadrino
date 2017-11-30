@@ -41,9 +41,6 @@ float headingOffset = 0;
 float strPwmOffset = 90;
 
 float x0 = 0.0f,y0 = 0.0f,z0 = 0.0f;
-float latlonCp[2][2] = {{36.567932, 139.995764},{36.567874, 139.995761}};
-float heightCenter = 188.0f;
-float latlonCenter[2] = {0.5 * (latlonCp[0][0] + latlonCp[1][0]),0.5 * (latlonCp[0][1] + latlonCp[0][1])};
 
 uint8_t sampleTimems = 10;
 
@@ -65,6 +62,7 @@ void setup(){
     GPSModuleInit();                // Venus838FLP: Startup GPS Module
     GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
     Llh2Ecef(latlonCenter[0] * M_PI / 180.0f,latlonCenter[1] * M_PI / 180.0f,heightCenter,&x0,&y0,&z0); //原点座標設定
+    GetDirectionPoint2Point(latlonCp,heightCenter,&directionCp);
     accelGyro.initialize();
     SetParamIMU();
     FStr.attach(9,1000,2000);
@@ -73,7 +71,8 @@ void setup(){
     Serial.print("heightElp,");Serial.print(heightCenter);
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
-    Serial.print("z0,");Serial.println(z0);
+    Serial.print("z0,");Serial.print(z0);
+    Serial.print("directionCp,");Serial.println(directionCp);
     SetVelocityLimInit(20.0f,AyLim,velLimInitp);//初回コース速度制限
 #if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
@@ -171,8 +170,9 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   GetSampleTime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
   stateMode = StateManager(0,0,stateMode);
-  VehicleMotionControl(stateMode);  
-  Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
+  VehicleMotionControl(stateMode);
+  PrintInfo();
+  //Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
 #if 0
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
   Serial.print(",YawRt,");Serial.print(yawRt);Serial.print(",yawAg,");Serial.print(yawAngle);
