@@ -32,20 +32,19 @@ Servo FStr,PowUnit;
 
 //  Setup Grobal Variables
 //  -----------------------------------------------------------------------------
+volatile float x=0,y=0,e=0,n=0,u=0,velmps=0,heading=0;
 unsigned long timems = millis();
 float sampletimes;
-float e,n,u,velmps,heading;
 float yawRt,yawAngle;
 float strPWM = 90,puPWM = 90;
 float headingOffset = 0;
 float strPwmOffset = 90;
 
 float x0 = 0.0f,y0 = 0.0f,z0 = 0.0f;
-
 uint8_t sampleTimems = 10;
 
 int ID = 0;
-float x=0,y=0,head,xNext,yNext,headNext;
+float head,xNext,yNext,headNext;
 float h,phiV,phiU,odo;
 
 int8_t stateMode = 0;
@@ -167,11 +166,14 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
  ***********************************************************************/
  void Task10ms(void)
  {
+  Serial.print("x,");Serial.println(x);
+  Serial.print("y,");Serial.println(y);
   GetSampleTime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
-  stateMode = StateManager(0,0,stateMode);
+  stateMode = StateManager(x,y,stateMode);
   VehicleMotionControl(stateMode);
   PrintInfo();
+
   //Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
 #if 0
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
@@ -210,5 +212,8 @@ void serialEvent2(){
   if(VenusAsyncRead()){
     GetPosENU(&e,&n,&u,x0,y0,z0);//原点からのENU座標  
     GetVelAndHead(&velmps,&heading);//GPS速度と方位の取得(CCW:正)
+    x = n;
+    y = -e;
+    RotAroudZ(&x,&y,NULL,directionCp);
   }
 }

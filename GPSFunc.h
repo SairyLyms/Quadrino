@@ -32,12 +32,15 @@ void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P
   for(int8_t i = 0;i<2;i++){
     Serial.print(",lat,");Serial.print(latLon[i][0],8);Serial.print(",lon,");Serial.println(latLon[i][1],8);    
     Llh2Ecef(latLon[i][0] * M_PI / 180,latLon[i][1] * M_PI / 180,height,&x[i],&y[i],&z[i]);
-    RotAroudZ(&x[i],&y[i],&z[i],0.5*M_PI);
-    RotAroudY(&x[i],&y[i],&z[i],(0.5*M_PI - latLon[i][0] * M_PI / 180));
-    RotAroudZ(&x[i],&y[i],&z[i],latLon[i][1] * M_PI / 180);
   }
-  Serial.print(",x,");Serial.print(x[0]-x[1]);Serial.print(",y,");Serial.println(y[0]-y[1]);      
-  *directionP2P = atan2f(y[0]-y[1],-(x[0]-x[1]));
+  x[1] -= x[0];
+  y[1] -= y[0];
+  z[1] -= z[0];
+  RotAroudZ(&x[1],&y[1],&z[1],latLon[1][1] * M_PI / 180);
+  RotAroudY(&x[1],&y[1],&z[1],(0.5*M_PI - latLon[1][0] * M_PI / 180));  
+  RotAroudZ(&x[1],&y[1],&z[1],0.5*M_PI);
+  Serial.print(",x,");Serial.print(x[1]);Serial.print(",y,");Serial.println(y[1]);      
+  *directionP2P = atan2f(x[1],-y[1]);
 }
 
 //原点からのENU座標
@@ -50,9 +53,9 @@ void GetPosENU(float *e,float *n,float *u ,float x0, float y0, float z0)
   *n = venus_ctx.location.ecef.y * 0.01 - y0;
   *u = venus_ctx.location.ecef.z * 0.01 - z0;
 
-  RotAroudZ(e,n,u,0.5*M_PI);
-  RotAroudY(e,n,u,(0.5*M_PI - latrad));
   RotAroudZ(e,n,u,lonrad);
+  RotAroudY(e,n,u,(0.5*M_PI - latrad));
+  RotAroudZ(e,n,u,0.5*M_PI);
 }
 
 //GPS速度と方位の取得(CCW:正)
@@ -65,9 +68,9 @@ void GetVelAndHead(float* velmps,float* heading)
   float vn = venus_ctx.location.vel.y * 0.01;
   float vu = venus_ctx.location.vel.z * 0.01;
 
-  RotAroudZ(&ve,&vn,&vu,0.5*M_PI);
-  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latrad));
   RotAroudZ(&ve,&vn,&vu,lonrad);
+  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latrad));  
+  RotAroudZ(&ve,&vn,&vu,0.5*M_PI);
 
   *velmps = sqrt(pow(ve,2) + pow(vn,2) + pow(vu,2));
   *heading = atan2f(-ve,vn);//CCWを正とする

@@ -3,11 +3,15 @@
 #define PWMInitCenter 90.0f //PWM初期中点値
 #define AyLim 9.8 * 0.5f          //限界横G
 
+#define PUPWMLimUPR 110       //駆動PWM上限値
+#define PUPWMLimLWR  80       //駆動PWM下限値
+
 extern unsigned long timems;
-extern float yawAngle,yawRt,sampletimes,heading,headingOffset,strPwmOffset,strPWM,puPWM,velmps;
+extern volatile float x,y,heading,velmps;
+extern float yawAngle,yawRt,sampletimes,headingOffset,strPwmOffset,strPWM,puPWM;
 extern Servo FStr,PowUnit;
 extern int ID;
-extern float x,y,head,xNext,yNext,headNext;
+extern float head,xNext,yNext,headNext;
 extern float h,phiV,phiU,odo;
 
 int8_t StateManager(float e,float n,int8_t stateMode);
@@ -19,13 +23,15 @@ void VehicleMotionControl(int8_t stateMode);
 void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM);
 void VMCRunNorm(float *strPWM,float *puPWM);
 void VMCStop(float *strPWM,float *puPWM);
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffset,float *headingOut);
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float directionCp,float *headingOffset,float *headingOut);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime);
 
 int8_t StateManager(float e,float n,int8_t stateMode){
     int8_t key = 0;
+
     stateMode = SMLimitArea(e,n,stateMode);
+    Serial.print("stateMode,");Serial.println(stateMode);
     if(stateMode & 0x01){                                        //走行可能範囲内(stateModeの0ビット目 == 1)の場合
         switch(stateMode){
             case 0x01:  Serial.println("To start hading calib, Send 'c'");
@@ -51,7 +57,7 @@ int8_t StateManager(float e,float n,int8_t stateMode){
         }
     }
     else{
-        Serial.println("Out of course,");                      //走行可能範囲外
+        Serial.print(",Out of course,");                      //走行可能範囲外
     }
     return stateMode;
 }
@@ -64,8 +70,7 @@ int8_t StateManager(float e,float n,int8_t stateMode){
  ***********************************************************************/
 int8_t SMLimitArea(float e,float n,int8_t stateMode)
 {
-    float rfromCenter;
-    GetLenAndDirection(0,0,NULL,e,n,NULL,&rfromCenter,NULL,NULL);
+    float rfromCenter = sqrt(pow(e,2) + pow(n,2));
     if(rfromCenter < LimitAreaRun){//範囲内(ビット0を立てる)
         stateMode |= 0x01;
     }
@@ -114,12 +119,12 @@ void VehicleMotionControl(int8_t stateMode)
     switch(stateMode){
         case 0x03:  //キャリブレーション事前走行中
         case 0x05:  //キャリブレーション走行中
-        case 0x07:  VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
+        case 0x07:  //VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
                     break;
         case 0x09:  //停止
-                    VMCStop(&strPWM,&puPWM);
+                    //VMCStop(&strPWM,&puPWM);
                     break;
-        case 0x19:  VMCRunNorm(&strPWM,&puPWM);//通常走行
+        case 0x19: //VMCRunNorm(&strPWM,&puPWM);//通常走行
                     break;
         default  :  //停止
                     VMCStop(&strPWM,&puPWM);
@@ -163,7 +168,7 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     float len,psi,phi1,cvCul,maxVel;
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
     if(odo >= h){
-        SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
+        SelectHeadingInfo(velmps,yawAngle,heading,directionCp,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
@@ -179,21 +184,21 @@ void VMCRunNorm(float *strPWM,float *puPWM)
 void VMCStop(float *strPWM,float *puPWM)
 {
     ID = 0;
-    x = 0;y = 0;head = 0;xNext = 0;yNext = 0;headNext = 0;
+    xNext = 0;yNext = 0;headNext = 0;
     h=0;phiV=0;phiU=0;odo=0;   
     *strPWM = 90;
     *puPWM = 90;
 }
 
 //速度に応じてHeading情報持ちかえる
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffset,float *headingOut)
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float directionCp,float *headingOffset,float *headingOut)
 {
     if(velocityMps > 1.0f){
-        *headingOut = headingGPS + yawRt * sampletimes;
+        *headingOut = Pi2pi(headingGPS + yawRt * sampletimes - directionCp);
         *headingOffset = Pi2pi(-yawAngle + headingGPS);
     }
     else{
-        *headingOut = yawAngle + *headingOffset;
+        *headingOut = Pi2pi(yawAngle + *headingOffset - directionCp);
     }
 }
 
@@ -243,7 +248,7 @@ float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime)
 	integral += (error * sampleTime);
 	derivative = (error - error_prior)/sampleTime;
 	output = kP * (error + integral / tI + tD * derivative) + bias;
-	output = constrain(output,80,180);
+	output = constrain(output,PUPWMLimLWR,PUPWMLimUPR);
 	error_prior = error;
 
 	return output;
