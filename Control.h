@@ -1,10 +1,13 @@
 
-#define LimitAreaRun 30.0f  //走行可能範囲(m)
+#define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
 #define AyLim 9.8 * 0.5f          //限界横G
 
 #define PUPWMLimUPR 110       //駆動PWM上限値
 #define PUPWMLimLWR  80       //駆動PWM下限値
+
+#define WHEELBase 0.266f
+#define KStrAngle2PWM 191.2f
 
 extern unsigned long timems;
 extern volatile float x,y,heading,velmps;
@@ -13,40 +16,40 @@ extern Servo FStr,PowUnit;
 extern int ID;
 extern float head,xNext,yNext,headNext;
 extern float h,phiV,phiU,odo;
-
-int8_t StateManager(float e,float n,int8_t stateMode);
-int8_t SMLimitArea(float e,float n,int8_t stateMode);
+extern int8_t stateMode;
+int8_t StateManager(float x,float y,int8_t stateMode);
+int8_t SMLimitArea(float x,float y,int8_t stateMode);
 int8_t SMHeadCalib(int8_t stateMode);
 int8_t SMChangeRunState(int8_t stateMode);
 int8_t SMChangeStopState(int8_t stateMode);
 void VehicleMotionControl(int8_t stateMode);
-void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM);
+void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffsetIMU,float *strPwmOffset,float *strPWM,float *puPWM);
 void VMCRunNorm(float *strPWM,float *puPWM);
 void VMCStop(float *strPWM,float *puPWM);
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float directionCp,float *headingOffset,float *headingOut);
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut);
+float StrControlFF(float cvCul,float strPwmOffset);
+float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime);
 
-int8_t StateManager(float e,float n,int8_t stateMode){
+int8_t StateManager(float x,float y,int8_t stateMode){
     int8_t key = 0;
-
-    stateMode = SMLimitArea(e,n,stateMode);
-    Serial.print("stateMode,");Serial.println(stateMode);
-    if(stateMode & 0x01){                                        //走行可能範囲内(stateModeの0ビット目 == 1)の場合
+    stateMode = SMLimitArea(x,y,stateMode);
+    if(x && y && stateMode & 0x01){                                        //x,yが0でなく、走行可能範囲内(stateModeの0ビット目 == 1)の場合
         switch(stateMode){
-            case 0x01:  Serial.println("To start hading calib, Send 'c'");
-                        while(!Serial.available());
-                        while(Serial.read() != 'c');
-                        stateMode = SMHeadCalib(stateMode);  
+            case 0x01:  Serial.print("Calib : 'c' ,");
+                        if(Serial.available() && Serial.read() == 'c'){
+                            stateMode = SMHeadCalib(stateMode);
+                        }
                         break;
             case 0x03:
             case 0x05:  
             case 0x07:  stateMode = SMHeadCalib(stateMode);
                         break;
-            case 0x09:  Serial.println("To start a vehicle , Send 'r' , To stop , Send 'Any' key... ");
-                        while(!Serial.available());
-                        while(Serial.read() != 'r');
-                        stateMode = SMChangeRunState(stateMode);    //走行開始
+            case 0x09:  Serial.print("Start : 'r' ,");
+                        if(Serial.available() && Serial.read() == 'r'){
+                            stateMode = SMChangeRunState(stateMode);    //走行開始
+                        }
                         break;
             case 0x19:  key = Serial.read();
                         if(key > 0 && key !=0x0A && key != 0x0D){
@@ -57,6 +60,7 @@ int8_t StateManager(float e,float n,int8_t stateMode){
         }
     }
     else{
+        stateMode = SMChangeStopState(stateMode);
         Serial.print(",Out of course,");                      //走行可能範囲外
     }
     return stateMode;
@@ -68,9 +72,9 @@ int8_t StateManager(float e,float n,int8_t stateMode){
  *
  * OUTPUT   : 状態値
  ***********************************************************************/
-int8_t SMLimitArea(float e,float n,int8_t stateMode)
+int8_t SMLimitArea(float x,float y,int8_t stateMode)
 {
-    float rfromCenter = sqrt(pow(e,2) + pow(n,2));
+    float rfromCenter = sqrt(pow(x,2) + pow(y,2));
     if(rfromCenter < LimitAreaRun){//範囲内(ビット0を立てる)
         stateMode |= 0x01;
     }
@@ -119,12 +123,12 @@ void VehicleMotionControl(int8_t stateMode)
     switch(stateMode){
         case 0x03:  //キャリブレーション事前走行中
         case 0x05:  //キャリブレーション走行中
-        case 0x07:  //VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
+        case 0x07:  VMCHeadCalib(stateMode,yawRt,sampletimes,heading,&headingOffset,&strPwmOffset,&strPWM,&puPWM);//キャリブレーション済、停止
                     break;
         case 0x09:  //停止
-                    //VMCStop(&strPWM,&puPWM);
+                    VMCStop(&strPWM,&puPWM);
                     break;
-        case 0x19: //VMCRunNorm(&strPWM,&puPWM);//通常走行
+        case 0x19:  VMCRunNorm(&strPWM,&puPWM);//通常走行
                     break;
         default  :  //停止
                     VMCStop(&strPWM,&puPWM);
@@ -135,7 +139,7 @@ void VehicleMotionControl(int8_t stateMode)
 }
 
 //キャリブレーション走行  
-void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float headingGPS,float *headingOffset,float *strPwmOffset,float *strPWM,float *puPWM)
+void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float headingGPS,float *IMUheadingOffset,float *strPwmOffset,float *strPWM,float *puPWM)
 {
     static float strPWMoffsetFromCenter = 0;
     static float bufx = 0,bufy = 0;
@@ -150,11 +154,11 @@ void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float h
     if(stateMode == 0x05){
         bufx += cos(headingGPS - yawAngle);
         bufy += sin(headingGPS - yawAngle);
-        strPWMoffsetFromCenter = *strPWM - 90;
+        strPWMoffsetFromCenter += *strPWM - 90;
     }
     else if(stateMode == 0x07){
-        if(!*headingOffset){
-            *headingOffset = atan2f(bufy,bufx);
+        if(!*IMUheadingOffset){
+            *IMUheadingOffset = atan2f(bufy,bufx);
             *strPwmOffset = strPWMoffsetFromCenter / 300 + 90;
         }
         bufx = 0;
@@ -168,15 +172,26 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     float len,psi,phi1,cvCul,maxVel;
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
     if(odo >= h){
-        SelectHeadingInfo(velmps,yawAngle,heading,directionCp,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
+        SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
         odo = 0;
+        Serial.println("");
+        Serial.print(",head,");Serial.print(head);Serial.print(",len,");Serial.print(len);
+        Serial.print(",psi,");Serial.print(psi);Serial.print(",phi1,");Serial.print(phi1);
+        Serial.print(",xNext,");Serial.print(xNext);
+        Serial.print(",yNext,");Serial.print(yNext);
+        Serial.print(",headNext,");Serial.print(headNext);     
+        Serial.println("");
     }
     CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
     MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim,&maxVel);
-    *strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);  
+    Serial.print(",cvCul,");Serial.print(cvCul);
+    Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
+    *strPWM = StrControlFF(cvCul,strPwmOffset);
+    //*strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);
+    //*strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset);
     *puPWM = SpdControlPID(velmps,maxVel,sampletimes);
     odo += velmps * sampletimes;
 }
@@ -191,27 +206,65 @@ void VMCStop(float *strPWM,float *puPWM)
 }
 
 //速度に応じてHeading情報持ちかえる
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float directionCp,float *headingOffset,float *headingOut)
+void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut)
 {
-    if(velocityMps > 1.0f){
-        *headingOut = Pi2pi(headingGPS + yawRt * sampletimes - directionCp);
-        *headingOffset = Pi2pi(-yawAngle + headingGPS);
+    if(puPWM > 95 && velocityMps > 1.0f){
+        *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
+        *headingOffsetIMU = Pi2pi(-yawAngle + headingGPS);
     }
     else{
-        *headingOut = Pi2pi(yawAngle + *headingOffset - directionCp);
+        *headingOut = Pi2pi(yawAngle + *headingOffsetIMU);
     }
 }
 
 void PrintInfo(void)
 {
-Serial.print("Timems,");Serial.print(timems);Serial.print(",heading,");Serial.print(heading);
-Serial.print(",yawRt,");Serial.print(yawRt);Serial.print(",velmps,");Serial.print(velmps);
-Serial.print(",ID,");Serial.print(ID);Serial.print(",x,");Serial.print(x);Serial.print(",y,");Serial.print(y);
+Serial.print("Timems,");Serial.print(timems);
+Serial.print("Mode,");Serial.print(stateMode,HEX);
+Serial.print(",x,");Serial.print(x);
+Serial.print(",y,");Serial.print(y);
+Serial.print(",heading,");Serial.print(heading);
+Serial.print(",yawRt,");Serial.print(yawRt);
+Serial.print(",velmps,");Serial.print(velmps);
+Serial.print(",ID,");Serial.print(ID);
 Serial.print(",odo,");Serial.print(odo);
-Serial.print(",strPWM,");Serial.print(strPWM);Serial.print(",puPWM,");Serial.print(puPWM);
+Serial.print(",strPWM,");Serial.print(strPWM);
+Serial.print(",puPWM,");Serial.print(puPWM);
 Serial.println("");
 }
 
+float StrControlFF(float cvCul,float strPwmOffset)
+{
+    float pwmFF = -KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
+    return constrain(pwmFF,40,140);
+}
+
+float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset)
+{
+    float kP = 20,tI = 0.205,tD = 0.02625,bias = StrControlFF(cvCul,strPwmOffset);
+    static uint8_t countCurrentID = 0;
+    static int lastID = 0;
+    static float error_prior = 0,integral = 0;
+    float error = 0,derivative = 0,output = 0;
+    if(ID != lastID){
+        error_prior = 0;
+        integral = 0;
+        countCurrentID = 0;
+    }
+    else if(countCurrentID > 20){
+        error = targetYawRate - currentYawRate;
+        integral += (error * sampleTime);
+        derivative = (error - error_prior)/sampleTime;
+    }
+    else{
+        countCurrentID++;
+    }
+    output = bias - kP * (error + integral / tI + tD * derivative);
+    output = constrain(output,40,140);
+    error_prior = error;
+    lastID = ID;
+    return output;
+}
 /************************************************************************
  * FUNCTION : 操舵制御指示値演算(ヨーレートフィードバック)
  * INPUT    : CPまでの目標ヨーレート、現在ヨーレート
@@ -219,15 +272,15 @@ Serial.println("");
  ***********************************************************************/
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset)
 {
-   float kP = 30,tI = 0.105,tD = 0.02625,bias = strPwmOffset;
+   float kP = 20,tI = 0.205,tD = 0.02625,bias = strPwmOffset;
    static float error_prior = 0,integral = 0;
-   float error,derivative,output;
-
+   float error = 0,derivative = 0,output = 0;
+   
    error = targetYawRate - currentYawRate;
    integral += (error * sampleTime);
    derivative = (error - error_prior)/sampleTime;
-   output = kP * (error + integral / tI + tD * derivative) + bias;
-   output = constrain(output,0,180);
+   output = bias - kP * (error + integral / tI + tD * derivative);
+   output = constrain(output,40,140);
    error_prior = error;
 
    return output;

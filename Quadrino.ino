@@ -32,7 +32,7 @@ Servo FStr,PowUnit;
 
 //  Setup Grobal Variables
 //  -----------------------------------------------------------------------------
-volatile float x=0,y=0,e=0,n=0,u=0,velmps=0,heading=0;
+volatile float x=0,y=0,velmps=0,heading=0;
 unsigned long timems = millis();
 float sampletimes;
 float yawRt,yawAngle;
@@ -64,8 +64,8 @@ void setup(){
     GetDirectionPoint2Point(latlonCp,heightCenter,&directionCp);
     accelGyro.initialize();
     SetParamIMU();
-    FStr.attach(9,1000,2000);
-    PowUnit.attach(8,1000,2000);
+    FStr.attach(3,1000,2000);
+    PowUnit.attach(5,1000,2000);
     AHRS.begin(100.0f);
     Serial.print("heightElp,");Serial.print(heightCenter);
     Serial.print("x0,");Serial.print(x0);
@@ -90,6 +90,7 @@ void SetParamIMU(void)
 {
   accelGyro.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
   accelGyro.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
+  accelGyro.setDLPFMode(MPU6050_DLPF_BW_10);
   accelGyro.setXAccelOffset(1149);
   accelGyro.setYAccelOffset(2154);
   accelGyro.setZAccelOffset(1621);
@@ -112,34 +113,10 @@ void ReadIMU(float sampletimes,float* yawRt,float* yawAngle)
   gfz = convertRawGyro(giz);
   AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz);            //コンパスはモータの磁場の影響をモロに受けるため使用せず
   YawAngleNow = AHRS.getYawRadians();
-  *yawRt = (YawAngleNow - *yawAngle) / sampletimes;
+  *yawRt = Pi2pi(YawAngleNow - *yawAngle) / sampletimes;
   *yawAngle = YawAngleNow;
 }
 
-/************************************************************************
- * FUNCTION : 走行軌道生成
- * INPUT    : なし
- * OUTPUT   : なし
- ***********************************************************************/
-void MakeTrajectory(void)
-{
-  float len,psi,phi0,phi1,h,phiV,phiU,cv;
-  int8_t n = 5;
-
-  //---------ここから作成する------------------
-  len=10;psi=0.25*M_PI;phi0 = 0;phi1 = 0.5*M_PI;//ここにコースデータセット関数つくる
-    //新規データセット時にクロソイドパラメータ読み込む
-    SetNextCourseData(&ID,&x,&y,&h);
-    SetCalcClothoid(len,psi,phi0,phi1,&h,&phiV,&phiU,n);//クロソイドパラメータ
-
-  for(int8_t i=0;i<10;i++){
-    float odo = (float)i * h * 0.1;
-    CalcCurrentCurvature(h,phiV,phiU,odo,NULL);
-    Serial.print(",Cv,");Serial.println();//旋回半径表示させたい場合
-  }
-  //cv = CalcCurvature(h,phiV,phiU,odo);
-
-}
 
 /************************************************************************
  * FUNCTION : サンプリング時間取得
@@ -166,8 +143,6 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
  ***********************************************************************/
  void Task10ms(void)
  {
-  Serial.print("x,");Serial.println(x);
-  Serial.print("y,");Serial.println(y);
   GetSampleTime(&timems,&sampletimes);    //現在時刻とサンプリングタイム取得
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
   stateMode = StateManager(x,y,stateMode);
@@ -210,10 +185,9 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
  ***********************************************************************/
 void serialEvent2(){
   if(VenusAsyncRead()){
-    GetPosENU(&e,&n,&u,x0,y0,z0);//原点からのENU座標  
-    GetVelAndHead(&velmps,&heading);//GPS速度と方位の取得(CCW:正)
-    x = n;
-    y = -e;
-    RotAroudZ(&x,&y,NULL,directionCp);
+    GetPosXY(x0,y0,z0,directionCp,&x,&y);
+    GetVelAndHeadwCourseDirection(directionCp,&velmps,&heading);
+    //GetPosENU(&e,&n,&u,x0,y0,z0);//原点からのENU座標  
+    //GetVelAndHead(&velmps,&heading);//GPS速度と方位の取得(CCW:正)
   }
 }

@@ -13,7 +13,6 @@ void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1);
-float Pi2pi(float angle);
 void SetVelocityLimInit(float velLimitMax,float ayLim,uint16_t *velLimInitp);
 
 /************************************************************************
@@ -144,6 +143,7 @@ float Newton(float psi,float phi0,float phi1,float phiU,int8_t n)  /* 初期値 
     return phiU;
 }
 
+
 /************************************************************************
  * FUNCTION : 最高旋回速度計算
  * INPUT    : 曲率、車両最高速度、最大横加速度
@@ -207,7 +207,7 @@ void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNe
     *NextCourseID >= lenCourseData-1 ? *NextCourseID = 1 : (*NextCourseID)++;
     *xNext = (float)CourseData[*NextCourseID][0] * courseScale;
     *yNext = (float)CourseData[*NextCourseID][1] * courseScale;
-    *headNext =  (float)CourseData[*NextCourseID][2] * 0.0001;
+    *headNext = (float)CourseData[*NextCourseID][2] * 0.0001;
 }
 
 /************************************************************************
@@ -217,21 +217,11 @@ void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNe
  ***********************************************************************/
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1)
 {
- *len = sqrtf(pow(xNext - x,2) + pow(yNext - y,2));
- *psi = Pi2pi(atan2f(yNext - y,xNext - x)-head);
- *phi1 = Pi2pi(headNext - head);
-}
-
-/************************************************************************
- * FUNCTION : 角度を-piからpiの範囲に納める
- * INPUT    : 角度(rad)
- * OUTPUT   : 変換済み角度(rad)
- ***********************************************************************/
-float Pi2pi(float angle)
-{
-    while(angle >= M_PI) {angle -= M_PI * 2;}
-    while(angle < -M_PI){angle += M_PI * 2;}
-    return angle;
+  float xVec = xNext - x,yVec = yNext - y;
+  //RotAroudZ(&xVec,&yVec,NULL,-head);
+  *len = sqrtf(pow(xVec,2) + pow(yVec,2));
+  *psi = Pi2pi(atan2f(yVec,xVec) - head);
+  abs(headNext) >= 3.14f ? *phi1 = Twopi2pi(headNext-head) : *phi1 = Pi2pi(headNext-head);  //Uターン時、方位変化PI超えの可能性あるため
 }
 
 /************************************************************************
