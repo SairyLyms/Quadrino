@@ -88,9 +88,6 @@ void GetPosXY(float x0, float y0, float z0,float latlonCenterRad[2],float direct
 //GPS速度と方位の取得(CCW:正)
 void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading)
 {
-  float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
-  float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
-  
   float ve = venus_ctx.location.vel.x * 0.01;
   float vn = venus_ctx.location.vel.y * 0.01;
   float vu = venus_ctx.location.vel.z * 0.01;
@@ -106,9 +103,6 @@ void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading)
 //GPS速度と方位の取得(CCW:正,コースに合わせてHeading補正)
 void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading)
 {
-  float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
-  float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
-  
   float ve = venus_ctx.location.vel.x * 0.01;
   float vn = venus_ctx.location.vel.y * 0.01;
   float vu = venus_ctx.location.vel.z * 0.01;
@@ -121,7 +115,7 @@ void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,fl
   vy = -ve;
   RotAroudZ(&vx,&vy,NULL,directionCp);
 
-  *velmps = sqrt(pow(ve,2) + pow(vn,2) + pow(vu,2));
+  *velmps = sqrt(pow(vx,2) + pow(vy,2));
   *heading = Pi2pi(atan2f(vy,vx));//CCWを正とする
 }
 

@@ -168,6 +168,7 @@ void VMCRunNorm(float *strPWM,float *puPWM)
         //SetCalcClothoidwStrAngle(len,psi,0.0f,phi1,*strPWM,&h,&phiV,&phiU,5);
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
         odo = 0;
+#if 0
         Serial.println("");
         Serial.print(",head,");Serial.print(head);Serial.print(",len,");Serial.print(len);
         Serial.print(",psi,");Serial.print(psi);Serial.print(",phi1,");Serial.print(phi1);
@@ -179,9 +180,10 @@ void VMCRunNorm(float *strPWM,float *puPWM)
         Serial.print(",StrPwm,");Serial.print(*strPWM);
         Serial.print(",StrPwmOffset,");Serial.print(strPwmOffset);
         Serial.println("");
+#endif
     }
     CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
-    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim * 2,&maxVel);
+    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim,&maxVel);
     Serial.print(",cvCul,");Serial.print(cvCul);
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
     //*strPWM = StrControlFF(cvCul,strPwmOffset);
@@ -215,8 +217,8 @@ void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *
 
 void PrintInfo(void)
 {
-Serial.print("Timems,");Serial.print(timems);
-Serial.print("Mode,");Serial.print(stateMode,HEX);
+Serial.print(",Timems,");Serial.print(timems);
+Serial.print(",Mode,");Serial.print(stateMode,HEX);
 Serial.print(",x,");Serial.print(x);
 Serial.print(",y,");Serial.print(y);
 Serial.print(",heading,");Serial.print(heading);

@@ -1,5 +1,5 @@
 #define WHEELBase 0.266f
-#define KStrAngle2PWM 191.2f
+#define KStrAngle2PWM 101.7f //TT-02Bの場合(171210)
 
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
