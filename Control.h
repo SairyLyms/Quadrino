@@ -1,14 +1,3 @@
-
-#define LimitAreaRun 20.0f  //走行可能範囲(m)
-#define PWMInitCenter 90.0f //PWM初期中点値
-#define AyLim 9.8 * 0.5f          //限界横G
-
-#define PUPWMLimUPR 110       //駆動PWM上限値
-#define PUPWMLimLWR  80       //駆動PWM下限値
-
-#define WHEELBase 0.266f
-#define KStrAngle2PWM 191.2f
-
 extern unsigned long timems;
 extern volatile float x,y,heading,velmps;
 extern float yawAngle,yawRt,sampletimes,headingOffset,strPwmOffset,strPWM,puPWM;
@@ -16,6 +5,7 @@ extern Servo FStr,PowUnit;
 extern int ID;
 extern float head,xNext,yNext,headNext;
 extern float h,phiV,phiU,odo;
+extern float maxVel;
 extern int8_t stateMode;
 int8_t StateManager(float x,float y,int8_t stateMode);
 int8_t SMLimitArea(float x,float y,int8_t stateMode);
@@ -30,7 +20,7 @@ void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *
 float StrControlFF(float cvCul,float strPwmOffset);
 float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
-float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime);
+float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime);
 
 int8_t StateManager(float x,float y,int8_t stateMode){
     int8_t key = 0;
@@ -134,7 +124,7 @@ void VehicleMotionControl(int8_t stateMode)
                     VMCStop(&strPWM,&puPWM);
                     break;
     }
-    FStr.write((int)strPWM);            //操舵指示
+    FStr.write((int)(180 - strPWM));            //操舵指示
     PowUnit.write((int)puPWM);          //駆動指示
 }
 
@@ -169,30 +159,36 @@ void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float h
 //通常走行
 void VMCRunNorm(float *strPWM,float *puPWM)
 {
-    float len,psi,phi1,cvCul,maxVel;
+    float len,psi,phi1,cvCul;
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
     if(odo >= h){
         SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
+        //SetCalcClothoidwStrAngle(len,psi,0.0f,phi1,*strPWM,&h,&phiV,&phiU,5);
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
         odo = 0;
         Serial.println("");
         Serial.print(",head,");Serial.print(head);Serial.print(",len,");Serial.print(len);
         Serial.print(",psi,");Serial.print(psi);Serial.print(",phi1,");Serial.print(phi1);
+        Serial.print(",h,");Serial.print(h);
+        Serial.print(",phiV,");Serial.print(phiV);Serial.print(",phiU,");Serial.print(phiU);
         Serial.print(",xNext,");Serial.print(xNext);
         Serial.print(",yNext,");Serial.print(yNext);
-        Serial.print(",headNext,");Serial.print(headNext);     
+        Serial.print(",headNext,");Serial.print(headNext);
+        Serial.print(",StrPwm,");Serial.print(*strPWM);
+        Serial.print(",StrPwmOffset,");Serial.print(strPwmOffset);
         Serial.println("");
     }
     CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
-    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim,&maxVel);
+    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim * 2,&maxVel);
     Serial.print(",cvCul,");Serial.print(cvCul);
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
-    *strPWM = StrControlFF(cvCul,strPwmOffset);
+    //*strPWM = StrControlFF(cvCul,strPwmOffset);
     //*strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);
-    //*strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset);
-    *puPWM = SpdControlPID(velmps,maxVel,sampletimes);
+    *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset);
+    *puPWM = 130;//SpdControlPID(ID,velmps,3,sampletimes);
+    //*puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);    
     odo += velmps * sampletimes;
 }
 //停止
@@ -210,7 +206,7 @@ void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *
 {
     if(puPWM > 95 && velocityMps > 1.0f){
         *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
-        *headingOffsetIMU = Pi2pi(-yawAngle + headingGPS);
+        //*headingOffsetIMU = Pi2pi(-yawAngle + headingGPS);
     }
     else{
         *headingOut = Pi2pi(yawAngle + *headingOffsetIMU);
@@ -224,8 +220,10 @@ Serial.print("Mode,");Serial.print(stateMode,HEX);
 Serial.print(",x,");Serial.print(x);
 Serial.print(",y,");Serial.print(y);
 Serial.print(",heading,");Serial.print(heading);
+Serial.print(",yawAng,");Serial.print(Pi2pi(yawAngle + headingOffset));
 Serial.print(",yawRt,");Serial.print(yawRt);
 Serial.print(",velmps,");Serial.print(velmps);
+Serial.print(",maxVel,");Serial.print(maxVel);
 Serial.print(",ID,");Serial.print(ID);
 Serial.print(",odo,");Serial.print(odo);
 Serial.print(",strPWM,");Serial.print(strPWM);
@@ -235,7 +233,7 @@ Serial.println("");
 
 float StrControlFF(float cvCul,float strPwmOffset)
 {
-    float pwmFF = -KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
+    float pwmFF = KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
     return constrain(pwmFF,40,140);
 }
 
@@ -259,7 +257,7 @@ float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate
     else{
         countCurrentID++;
     }
-    output = bias - kP * (error + integral / tI + tD * derivative);
+    output = kP * (error + integral / tI + tD * derivative) + bias;
     output = constrain(output,40,140);
     error_prior = error;
     lastID = ID;
@@ -279,7 +277,7 @@ float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,fl
    error = targetYawRate - currentYawRate;
    integral += (error * sampleTime);
    derivative = (error - error_prior)/sampleTime;
-   output = bias - kP * (error + integral / tI + tD * derivative);
+   output = kP * (error + integral / tI + tD * derivative) + bias;
    output = constrain(output,40,140);
    error_prior = error;
 
@@ -291,18 +289,22 @@ float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,fl
  * INPUT    : 現在の速度、目標速度
  * OUTPUT   : モータ制御指示値
  ***********************************************************************/
-float SpdControlPID(float currentSpeed,float targetSpeed,float sampleTime)
+float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime)
 {
 	float kP = 8,tI = 0.5,tD = 0.125,bias = 90;
-	static float error_prior = 0,integral = 0;
-	float error,derivative,output;
-
+    static float error_prior = 0,integral = 0;
+    static int lastID = 0;
+    float error,derivative,output;
+ //   if(ID != lastID){
+ //       error_prior = 0;
+ //       integral = 0;
+ //   }
 	error = targetSpeed - currentSpeed;
 	integral += (error * sampleTime);
 	derivative = (error - error_prior)/sampleTime;
 	output = kP * (error + integral / tI + tD * derivative) + bias;
 	output = constrain(output,PUPWMLimLWR,PUPWMLimUPR);
 	error_prior = error;
-
+    lastID = ID;    
 	return output;
 }

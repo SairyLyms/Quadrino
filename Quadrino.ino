@@ -1,4 +1,12 @@
+#define WHEELBase 0.266f
+#define KStrAngle2PWM 191.2f
 
+#define LimitAreaRun 20.0f  //走行可能範囲(m)
+#define PWMInitCenter 90.0f //PWM初期中点値
+#define AyLim 9.8 * 0.2f          //限界横G
+
+#define PUPWMLimUPR 130       //駆動PWM上限値
+#define PUPWMLimLWR  80       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
 
@@ -46,6 +54,7 @@ uint8_t sampleTimems = 10;
 int ID = 0;
 float head,xNext,yNext,headNext;
 float h,phiV,phiU,odo;
+float maxVel;
 
 int8_t stateMode = 0;
 
@@ -60,7 +69,7 @@ void setup(){
     Wire.setClock(400000L);    
     GPSModuleInit();                // Venus838FLP: Startup GPS Module
     GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
-    Llh2Ecef(latlonCenter[0] * M_PI / 180.0f,latlonCenter[1] * M_PI / 180.0f,heightCenter,&x0,&y0,&z0); //原点座標設定
+    Llh2Ecef(latlonCenterRad[0],latlonCenterRad[1],heightCenter,&x0,&y0,&z0); //原点座標設定
     GetDirectionPoint2Point(latlonCp,heightCenter,&directionCp);
     accelGyro.initialize();
     SetParamIMU();
@@ -91,12 +100,12 @@ void SetParamIMU(void)
   accelGyro.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
   accelGyro.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
   accelGyro.setDLPFMode(MPU6050_DLPF_BW_10);
-  accelGyro.setXAccelOffset(1149);
-  accelGyro.setYAccelOffset(2154);
-  accelGyro.setZAccelOffset(1621);
-  accelGyro.setXGyroOffset(-59);
-  accelGyro.setYGyroOffset(-16);
-  accelGyro.setZGyroOffset(-13);
+  accelGyro.setXAccelOffset(1054);
+  accelGyro.setYAccelOffset(2117);
+  accelGyro.setZAccelOffset(1600);
+  accelGyro.setXGyroOffset(-42);
+  accelGyro.setYGyroOffset(-1);
+  accelGyro.setZGyroOffset(-9);
 }
 
 void ReadIMU(float sampletimes,float* yawRt,float* yawAngle)
@@ -111,7 +120,7 @@ void ReadIMU(float sampletimes,float* yawRt,float* yawAngle)
   gfx = convertRawGyro(gix);
   gfy = convertRawGyro(giy);
   gfz = convertRawGyro(giz);
-  AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz);            //コンパスはモータの磁場の影響をモロに受けるため使用せず
+  AHRS.updateIMU(gfx, gfy, gfz, afx, afy, afz, sampletimes);            //コンパスはモータの磁場の影響をモロに受けるため使用せず
   YawAngleNow = AHRS.getYawRadians();
   *yawRt = Pi2pi(YawAngleNow - *yawAngle) / sampletimes;
   *yawAngle = YawAngleNow;
@@ -185,9 +194,8 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
  ***********************************************************************/
 void serialEvent2(){
   if(VenusAsyncRead()){
-    GetPosXY(x0,y0,z0,directionCp,&x,&y);
-    GetVelAndHeadwCourseDirection(directionCp,&velmps,&heading);
-    //GetPosENU(&e,&n,&u,x0,y0,z0);//原点からのENU座標  
-    //GetVelAndHead(&velmps,&heading);//GPS速度と方位の取得(CCW:正)
+    GetPosXY(x0,y0,z0,latlonCenterRad,directionCp,&x,&y);
+    GetVelAndHeadwCourseDirection(latlonCenterRad,directionCp,&velmps,&heading);
+    //DebugGPS();
   }
 }

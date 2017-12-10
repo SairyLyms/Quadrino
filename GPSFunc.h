@@ -11,10 +11,10 @@
 float Pi2pi(float angle);
 void Llh2Ecef(float latRad,float lonRad,float height,float *x,float *y,float *z);
 void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P);
-void GetPosENU(float* e,float *n,float *u ,float x0, float y0, float z0);
-void GetPosXY(float x0, float y0, float z0,float directionCp,float *x,float *y);
-void GetVelAndHead(float* velmps,float* heading);
-void GetVelAndHeadwCourseDirection(float directionCp,float* velmps,float* heading);
+void GetPosENU(float x0, float y0, float z0,float latlonCenterRad[2],float *e,float *n,float *u);
+void GetPosXY(float x0, float y0, float z0,float latlonCenterRad[2],float directionCp,float *x,float *y);
+void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading);
+void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading);
 void RotAroudX(float* x,float* y,float* z,float angleRad);
 void RotAroudY(float* x,float* y,float* z,float angleRad);
 void RotAroudZ(float* x,float* y,float* z,float angleRad);
@@ -31,17 +31,6 @@ void RotAroudZ(float* x,float* y,float* z,float angleRad);
      return angle;
  }
 
- /************************************************************************
- * FUNCTION : 角度を-piからpiの範囲に納める
- * INPUT    : 角度(rad)
- * OUTPUT   : 変換済み角度(rad)
- ***********************************************************************/
- float Twopi2pi(float angle)
- {
-     while(angle >= 2 * M_PI) {angle -= M_PI * 2;}
-     while(angle < - 2 * M_PI){angle += M_PI * 2;}
-     return angle;
- }
 //緯度経度からECEF座標への変換(コース情報生成用)
 void Llh2Ecef(float latRad,float lonRad,float height,float *x,float *y,float *z)
 {
@@ -69,32 +58,26 @@ void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P
 }
 
 //原点からのENU座標
-void GetPosENU(float *e,float *n,float *u ,float x0, float y0, float z0)
-{
-  float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
-  float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
-  
+void GetPosENU(float x0, float y0, float z0,float latlonCenterRad[2],float *e,float *n,float *u)
+{  
   *e = venus_ctx.location.ecef.x * 0.01 - x0;
   *n = venus_ctx.location.ecef.y * 0.01 - y0;
   *u = venus_ctx.location.ecef.z * 0.01 - z0;
 
-  RotAroudZ(e,n,u,lonrad);
-  RotAroudY(e,n,u,(0.5*M_PI - latrad));
+  RotAroudZ(e,n,u,latlonCenterRad[1]);
+  RotAroudY(e,n,u,(0.5*M_PI - latlonCenterRad[0]));
   RotAroudZ(e,n,u,0.5*M_PI);
 }
 
 //原点からのXY座標(コースに合わせてXY位置出力する)
-void GetPosXY(float x0, float y0, float z0,float directionCp,float *x,float *y)
+void GetPosXY(float x0, float y0, float z0,float latlonCenterRad[2],float directionCp,float *x,float *y)
 {
-  float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
-  float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
-  
   float e = venus_ctx.location.ecef.x * 0.01 - x0;
   float n = venus_ctx.location.ecef.y * 0.01 - y0;
   float u = venus_ctx.location.ecef.z * 0.01 - z0;
 
-  RotAroudZ(&e,&n,&u,lonrad);
-  RotAroudY(&e,&n,&u,(0.5*M_PI - latrad));
+  RotAroudZ(&e,&n,&u,latlonCenterRad[1]);
+  RotAroudY(&e,&n,&u,(0.5*M_PI - latlonCenterRad[0]));
   RotAroudZ(&e,&n,&u,0.5*M_PI);
   *x = n;
   *y = -e;
@@ -103,7 +86,7 @@ void GetPosXY(float x0, float y0, float z0,float directionCp,float *x,float *y)
 
 
 //GPS速度と方位の取得(CCW:正)
-void GetVelAndHead(float* velmps,float* heading)
+void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading)
 {
   float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
   float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
@@ -112,8 +95,8 @@ void GetVelAndHead(float* velmps,float* heading)
   float vn = venus_ctx.location.vel.y * 0.01;
   float vu = venus_ctx.location.vel.z * 0.01;
 
-  RotAroudZ(&ve,&vn,&vu,lonrad);
-  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latrad));  
+  RotAroudZ(&ve,&vn,&vu,latlonCenterRad[1]);
+  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latlonCenterRad[0]));  
   RotAroudZ(&ve,&vn,&vu,0.5*M_PI);
 
   *velmps = sqrt(pow(ve,2) + pow(vn,2) + pow(vu,2));
@@ -121,7 +104,7 @@ void GetVelAndHead(float* velmps,float* heading)
 }
 
 //GPS速度と方位の取得(CCW:正,コースに合わせてHeading補正)
-void GetVelAndHeadwCourseDirection(float directionCp,float* velmps,float* heading)
+void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading)
 {
   float latrad = (float)(venus_ctx.location.latitude/10000000.000000) * M_PI / 180;
   float lonrad = (float)(venus_ctx.location.longitude/10000000.000000) * M_PI / 180;
@@ -131,8 +114,8 @@ void GetVelAndHeadwCourseDirection(float directionCp,float* velmps,float* headin
   float vu = venus_ctx.location.vel.z * 0.01;
   float vx,vy;
 
-  RotAroudZ(&ve,&vn,&vu,lonrad);
-  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latrad));  
+  RotAroudZ(&ve,&vn,&vu,latlonCenterRad[1]);
+  RotAroudY(&ve,&vn,&vu,(0.5*M_PI - latlonCenterRad[0]));  
   RotAroudZ(&ve,&vn,&vu,0.5*M_PI);
   vx = vn;
   vy = -ve;
@@ -145,6 +128,8 @@ void GetVelAndHeadwCourseDirection(float directionCp,float* velmps,float* headin
 //GPS情報の表示
 void DebugGPS(void)
 {
+  Serial.print(",Sats,");
+  Serial.print(venus_ctx.location.sv_count);
   Serial.print(",fix,");Serial.print(venus_ctx.location.fixmode);
   Serial.print(",lon,");Serial.print(venus_ctx.location.longitude);
   Serial.print(",lat,");Serial.print(venus_ctx.location.latitude);
@@ -155,6 +140,7 @@ void DebugGPS(void)
   Serial.print(",spd.x,");Serial.print((float)venus_ctx.location.vel.x * 0.01);
   Serial.print(",spd.y,");Serial.print((float)venus_ctx.location.vel.y * 0.01);
   Serial.print(",spd.z,");Serial.print((float)venus_ctx.location.vel.z * 0.01);
+  Serial.println("");
 }
 
 void RotAroudX(float* x,float* y,float* z,float angleRad)

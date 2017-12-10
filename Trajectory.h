@@ -1,6 +1,9 @@
 //-------------------------
 //Definition
 //-------------------------
+
+extern float strPwmOffset;
+
 void SetCalcClothoid(float len,float psi,float phi0,float phi1,float *h,float *phiV,float *phiU, int8_t n);
 void CalcCurrentCurvature(float h,float phiV,float phiU,float odo);
 Complex slope(float phi0,float phiV, float phiU, float S);
@@ -29,6 +32,21 @@ void SetCalcClothoid(float len,float psi,float phi0,float phi1,float *h,float *p
   clothid = CalcParamClothoid(*phiV,*phiU,n);
   *h = len / clothid.modulus();
 }
+
+/************************************************************************
+ * FUNCTION : クロソイド曲線パラメータ導出・設定関数(コース切替時のみ読み込み)
+ * INPUT    : 目標までの直線距離、目標までの角度、現在のヨー角(車体滑り角??)、目標までのヨー角、舵角PWM値、目標までのコース分割数
+ * OUTPUT   : 拡大率(ポインタ)、初期曲率(ポインタ)、縮率(ポインタ)
+ ***********************************************************************/
+ void SetCalcClothoidwStrAngle(float len,float psi,float phi0,float phi1,float strPWM,float *h,float *phiV,float *phiU, int8_t n)
+ { 
+   Complex clothid;
+   *phiV = (strPWM - strPwmOffset) / KStrAngle2PWM / WHEELBase;
+   *phiU = phi1 - phi0 - *phiV;
+   clothid = CalcParamClothoid(*phiV,*phiU,n);
+   *h = len / clothid.modulus();
+ }
+ 
 
 /************************************************************************
  * FUNCTION : 走行距離に応じたクロソイド曲率導出関数
@@ -218,10 +236,16 @@ void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNe
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1)
 {
   float xVec = xNext - x,yVec = yNext - y;
-  //RotAroudZ(&xVec,&yVec,NULL,-head);
+
+  *phi1 = headNext-head;
   *len = sqrtf(pow(xVec,2) + pow(yVec,2));
   *psi = Pi2pi(atan2f(yVec,xVec) - head);
-  abs(headNext) >= 3.14f ? *phi1 = Twopi2pi(headNext-head) : *phi1 = Pi2pi(headNext-head);  //Uターン時、方位変化PI超えの可能性あるため
+  if(*phi1 >= (*psi + M_PI)){     //視野角を0degとして接線角の範囲異常を修正する
+    *phi1 -= 2 * M_PI;
+  }
+  else if(*phi1 < (*psi - M_PI)){ //視野角を0degとして接線角の範囲異常を修正する
+    *phi1 += 2 * M_PI;
+  }
 }
 
 /************************************************************************

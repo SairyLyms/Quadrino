@@ -825,7 +825,7 @@ bool GPSConfigureDefaults()
 
 #if 1
   // configure NAV MODE
-  if(values[0]!=VENUS8_NAVMODE_AIRBORNE && (result=VenusSetNavMode(VENUS8_NAVMODE_AIRBORNE, VENUS_FLASH))!=VENUS_OK)
+  if(values[0]!=VENUS8_NAVMODE_CAR && (result=VenusSetNavMode(VENUS8_NAVMODE_CAR, VENUS_FLASH))!=VENUS_OK)
     VenusError(STARTUP_NAVMODE);
   
   // disable POSITION PINNING
