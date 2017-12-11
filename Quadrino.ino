@@ -4,6 +4,7 @@
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
 #define AyLim 9.8 * 0.2f          //限界横G
+#define MaxVelLimCourse 4.0f
 
 #define PUPWMLimUPR 130       //駆動PWM上限値
 #define PUPWMLimLWR  80       //駆動PWM下限値
@@ -81,7 +82,7 @@ void setup(){
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.print(z0);
     Serial.print("directionCp,");Serial.println(directionCp);
-    SetVelocityLimInit(20.0f,AyLim,velLimInitp);//初回コース速度制限
+    SetVelocityLimInit(MaxVelLimCourse,AyLim,velLimInitp);//初回コース速度制限
 #if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;

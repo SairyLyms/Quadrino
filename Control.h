@@ -165,7 +165,6 @@ void VMCRunNorm(float *strPWM,float *puPWM)
         SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
-        //SetCalcClothoidwStrAngle(len,psi,0.0f,phi1,*strPWM,&h,&phiV,&phiU,5);
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
         odo = 0;
 #if 0
@@ -183,13 +182,13 @@ void VMCRunNorm(float *strPWM,float *puPWM)
 #endif
     }
     CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
-    MaxVelocitympsP(cvCul,velLimInitp[ID],AyLim,&maxVel);
+    MaxVelocitympsP(cvCul,velLimInitp[ID] * 0.001,AyLim,&maxVel);
     Serial.print(",cvCul,");Serial.print(cvCul);
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
     //*strPWM = StrControlFF(cvCul,strPwmOffset);
     //*strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);
     *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset);
-    *puPWM = 130;//SpdControlPID(ID,velmps,3,sampletimes);
+    *puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);
     //*puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);    
     odo += velmps * sampletimes;
 }
@@ -297,15 +296,11 @@ float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime
     static float error_prior = 0,integral = 0;
     static int lastID = 0;
     float error,derivative,output;
- //   if(ID != lastID){
- //       error_prior = 0;
- //       integral = 0;
- //   }
 	error = targetSpeed - currentSpeed;
 	integral += (error * sampleTime);
 	derivative = (error - error_prior)/sampleTime;
 	output = kP * (error + integral / tI + tD * derivative) + bias;
-	output = constrain(output,PUPWMLimLWR,PUPWMLimUPR);
+    output = constrain(output,PUPWMLimLWR,PUPWMLimUPR);
 	error_prior = error;
     lastID = ID;    
 	return output;
