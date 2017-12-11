@@ -3,10 +3,10 @@
 
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
-#define AyLim 9.8 * 0.2f          //限界横G
+#define AyLim 9.8 * 0.5f          //限界横G
 #define MaxVelLimCourse 4.0f
 
-#define PUPWMLimUPR 130       //駆動PWM上限値
+#define PUPWMLimUPR 150       //駆動PWM上限値
 #define PUPWMLimLWR  80       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
