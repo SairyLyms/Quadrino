@@ -18,7 +18,8 @@ void VMCRunNorm(float *strPWM,float *puPWM);
 void VMCStop(float *strPWM,float *puPWM);
 void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut);
 float StrControlFF(float cvCul,float strPwmOffset);
-float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
+float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps);
+float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime);
 
@@ -187,7 +188,7 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
     //*strPWM = StrControlFF(cvCul,strPwmOffset);
     //*strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);
-    *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset);
+    *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset,velmps);
     *puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);
     //*puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);    
     odo += velmps * sampletimes;
@@ -237,10 +238,17 @@ float StrControlFF(float cvCul,float strPwmOffset)
     float pwmFF = KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
     return constrain(pwmFF,40,140);
 }
-
-float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset)
+//スタビリティファクタを考慮
+float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps)
 {
-    float kP = 20,tI = 0.205,tD = 0.02625,bias = StrControlFF(cvCul,strPwmOffset);
+    cvCul *= (1 + StabilityFactor * pow(velmps,2));
+    float pwmFF = KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
+    return constrain(pwmFF,40,140);
+}
+
+float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps)
+{
+    float kP = 20,tI = 0.205,tD = 0.02625,bias = StrControlFFwSF(cvCul,strPwmOffset,velmps);
     static uint8_t countCurrentID = 0;
     static int lastID = 0;
     static float error_prior = 0,integral = 0;
