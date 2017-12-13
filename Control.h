@@ -186,9 +186,8 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     MaxVelocitympsP(cvCul,velLimInitp[ID] * 0.001,AyLim,&maxVel);
     Serial.print(",cvCul,");Serial.print(cvCul);
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
-    //*strPWM = StrControlFF(cvCul,strPwmOffset);
-    //*strPWM = StrControlPID(yawRt,velmps * cvCul,sampletimes,strPwmOffset);
-    *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset,velmps);
+    *strPWM = StrControlFFwSF(cvCul,strPwmOffset,velmps);
+    //*strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset,velmps);
     *puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);
     //*puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);    
     odo += velmps * sampletimes;
