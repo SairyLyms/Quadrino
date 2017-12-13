@@ -186,7 +186,8 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     MaxVelocitympsP(cvCul,velLimInitp[ID] * 0.001,AyLim,&maxVel);
     Serial.print(",cvCul,");Serial.print(cvCul);
     Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
-    *strPWM = StrControlFFwSF(cvCul,strPwmOffset,velmps);
+    *strPWM = StrControlFF(cvCul,strPwmOffset);                 //スタビリティファクタ補正なし
+    //*strPWM = StrControlFFwSF(cvCul,strPwmOffset,velmps);     //スタビリティファクタ補正あり
     //*strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset,velmps);
     *puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);
     //*puPWM = SpdControlPID(ID,velmps,maxVel,sampletimes);    
@@ -234,14 +235,20 @@ Serial.println("");
 
 float StrControlFF(float cvCul,float strPwmOffset)
 {
-    float pwmFF = KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
+    float kFstrPWM1 = 331.0f,kFstrPWM2 = 6.0f ,kFstrPWM3 = 77.7f;//TT-02Bの舵角-PWM定数
+    int8_t sign = (cvCul > 0) - (cvCul < 0);                     //符号抽出(sqrt関数対策)
+    float strRad = WHEELBase * abs(cvCul);
+    float pwmFF = (float)sign * (kFstrPWM1 * pow(strRad,2) + kFstrPWM2 * strRad + kFstrPWM3 * sqrtf(strRad)) + strPwmOffset;    
     return constrain(pwmFF,40,140);
 }
 //スタビリティファクタを考慮
 float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps)
 {
-    cvCul *= (1 + StabilityFactor * pow(velmps,2));
-    float pwmFF = KStrAngle2PWM * WHEELBase * cvCul + strPwmOffset;
+    float kFstrPWM1 = 331.0f,kFstrPWM2 = 6.0f ,kFstrPWM3 = 77.7f;//TT-02Bの舵角-PWM定数
+    int8_t sign = (cvCul > 0) - (cvCul < 0);                     //符号抽出(sqrt関数対策)
+    cvCul *= (1 + StabilityFactor * pow(velmps,2));              //スタビリティファクタ分の曲率補正
+    float strRad = WHEELBase * abs(cvCul);
+    float pwmFF = (float)sign * (kFstrPWM1 * pow(strRad,2) + kFstrPWM2 * strRad + kFstrPWM3 * sqrtf(strRad)) + strPwmOffset;
     return constrain(pwmFF,40,140);
 }
 
