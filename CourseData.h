@@ -15,7 +15,7 @@ volatile const int16_t CourseData[][3]    =
 {0,0,atan2(-3,7)*10000}
 };
 
-volatile const float latlonCp[2][2] = {{36.568100, 139.9958769},{36.567982, 139.9958769}};
+volatile const float latlonCp[2][2] = {{36.568100, 139.9958600},{36.567982, 139.9958600}};
 //volatile const float latlonCp[2][2] = {{36.567874, 139.995864},{36.567874, 139.995764}};
 volatile const float heightCenter = 188.0f;
 const float latlonCenterRad[2] = {M_PI / 180 * 0.5 * (latlonCp[0][0] + latlonCp[1][0]),M_PI / 180 * 0.5 * (latlonCp[0][1] + latlonCp[0][1])};
