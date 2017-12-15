@@ -16,7 +16,8 @@ void VehicleMotionControl(int8_t stateMode);
 void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float hading,float *headingOffsetIMU,float *strPwmOffset,float *strPWM,float *puPWM);
 void VMCRunNorm(float *strPWM,float *puPWM);
 void VMCStop(float *strPWM,float *puPWM);
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut);
+void SelectHeadingInfo(float headingGPS,float yawRt,float sampletimes,float *headingOut);
+void SelectHeadingInfoOld(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut);
 float StrControlFF(float cvCul,float strPwmOffset);
 float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps);
 float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps);
@@ -163,7 +164,8 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     float len,psi,phi1,cvCul;
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
     if(odo >= h){
-        SelectHeadingInfo(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
+        SelectHeadingInfo(heading,yawRt,sampletimes,&head);
+        //SelectHeadingInfoOld(velmps,yawAngle,heading,&headingOffset,&head);//速度に応じてHeading情報持ちかえる
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
@@ -203,8 +205,20 @@ void VMCStop(float *strPWM,float *puPWM)
     *puPWM = 90;
 }
 
+//GPSのHeading情報飛び防止
+void SelectHeadingInfo(float headingGPS,float yawRt,float sampletimes,float *headingOut)
+{
+    static float lastHeadingGPS;
+    if(abs(headingGPS - lastHeadingGPS) > 1.2f * abs(yawRt * sampletimes)){ //GPSHeading情報の変化がヨーレート以上(YawRt * 1.2)の時
+        *headingOut = lastHeadingGPS + yawRt * sampletimes;
+    }
+    else{
+        *headingOut = headingGPS;
+    }
+    lastHeadingGPS = headingGPS;
+}
 //速度に応じてHeading情報持ちかえる
-void SelectHeadingInfo(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut)
+void SelectHeadingInfoOld(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut)
 {
     if(puPWM > 95 && velocityMps > 1.0f){
         *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
