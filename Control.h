@@ -1,6 +1,6 @@
 extern unsigned long timems;
 extern volatile float x,y,heading,velmps;
-extern float yawAngle,yawRt,sampletimes,headingOffset,strPwmOffset,strPWM,puPWM;
+extern float yawAngle,yawRt,sampletimes,headingOffset,strPwmOffset,strPWM,puPWM,gpsSampletimes;
 extern Servo FStr,PowUnit;
 extern int ID;
 extern float head,xNext,yNext,headNext;
@@ -209,7 +209,8 @@ void VMCStop(float *strPWM,float *puPWM)
 void SelectHeadingInfo(float headingGPS,float yawRt,float sampletimes,float *headingOut)
 {
     static float lastHeadingGPS;
-    if(abs(headingGPS - lastHeadingGPS) > 1.2f * abs(yawRt * sampletimes)){ //GPSHeading情報の変化がヨーレート以上(YawRt * 1.2)の時
+    float yawRtGPS = headingGPS - lastHeadingGPS;   //GPSヨーレート(rad/sample)
+    if((yawRtGPS * headingGPS < 0) || abs(yawRtGPS) > 1.2f * abs(yawRt * sampletimes)){//符号違い or GPSHeading情報の変化がIMUヨーレート以上(YawRt * 1.2)の時
         *headingOut = lastHeadingGPS + yawRt * sampletimes;
     }
     else{

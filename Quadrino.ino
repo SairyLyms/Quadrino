@@ -43,8 +43,8 @@ Servo FStr,PowUnit;
 //  Setup Grobal Variables
 //  -----------------------------------------------------------------------------
 volatile float x=0,y=0,velmps=0,heading=0;
-unsigned long timems = millis();
-float sampletimes;
+unsigned long timems = millis(),gpsTimems = millis();
+float sampletimes,gpsSampletimes;
 float yawRt,yawAngle;
 float strPWM = 90,puPWM = 90;
 float headingOffset = 0;
