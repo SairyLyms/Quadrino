@@ -14,11 +14,11 @@ void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P
 void GetPosENU(float x0, float y0, float z0,float latlonCenterRad[2],float *e,float *n,float *u);
 void GetPosXY(float x0, float y0, float z0,float latlonCenterRad[2],float directionCp,float *x,float *y);
 void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading);
-void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading);
+void GetGPSVelHeadYawRtwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading,float* yawRtGPS,unsigned long* gpsTimems,float* gpsSampletimes);
 void RotAroudX(float* x,float* y,float* z,float angleRad);
 void RotAroudY(float* x,float* y,float* z,float angleRad);
 void RotAroudZ(float* x,float* y,float* z,float angleRad);
-
+extern void GetSampleTime(unsigned long* timems,float *sampletimes);
 /************************************************************************
  * FUNCTION : 角度を-piからpiの範囲に納める
  * INPUT    : 角度(rad)
@@ -101,8 +101,10 @@ void GetVelAndHead(float latlonCenterRad[2],float* velmps,float* heading)
 }
 
 //GPS速度と方位の取得(CCW:正,コースに合わせてHeading補正)
-void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading)
+void GetGPSVelHeadYawRtwCourseDirection(float latlonCenterRad[2],float directionCp,float* velmps,float* heading,float* yawRtGPS,unsigned long* gpsTimems,float* gpsSampletimes)
 {
+  GetSampleTime(gpsTimems,gpsSampletimes);
+  static float lastHeading;
   float ve = venus_ctx.location.vel.x * 0.01;
   float vn = venus_ctx.location.vel.y * 0.01;
   float vu = venus_ctx.location.vel.z * 0.01;
@@ -117,6 +119,8 @@ void GetVelAndHeadwCourseDirection(float latlonCenterRad[2],float directionCp,fl
 
   *velmps = sqrt(pow(vx,2) + pow(vy,2));
   *heading = Pi2pi(atan2f(vy,vx));//CCWを正とする
+  *yawRtGPS = Pi2pi(*heading - lastHeading) / *gpsSampletimes;
+  lastHeading = *heading;
 }
 
 //GPS情報の表示

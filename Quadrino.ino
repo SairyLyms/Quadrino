@@ -45,7 +45,7 @@ Servo FStr,PowUnit;
 volatile float x=0,y=0,velmps=0,heading=0;
 unsigned long timems = millis(),gpsTimems = millis();
 float sampletimes,gpsSampletimes;
-float yawRt,yawAngle;
+float yawRt,yawAngle,yawRtGPS;
 float strPWM = 90,puPWM = 90;
 float headingOffset = 0;
 float strPwmOffset = 90;
@@ -197,7 +197,7 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
 void serialEvent2(){
   if(VenusAsyncRead()){
     GetPosXY(x0,y0,z0,latlonCenterRad,directionCp,&x,&y);
-    GetVelAndHeadwCourseDirection(latlonCenterRad,directionCp,&velmps,&heading);
+    GetGPSVelHeadYawRtwCourseDirection(latlonCenterRad,directionCp,&velmps,&heading,&yawRtGPS,&gpsTimems,&gpsSampletimes);
     //DebugGPS();
   }
 }
