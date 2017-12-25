@@ -161,9 +161,9 @@ void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float h
 void VMCRunNorm(float *strPWM,float *puPWM)
 {
     float len,psi,phi1,cvCul;
+    SelectHeadingInfo(*puPWM,velmps,yawRtGPS,heading,yawRt,yawAngle,sampletimes,&headingOffset,&head);    
     //初回 or オドメータがhに到達した場合、次の目標位置までの軌道・曲率を生成する
     if(odo >= h){
-        SelectHeadingInfo(*puPWM,velmps,yawRtGPS,heading,yawRt,yawAngle,sampletimes,&headingOffset,&head);
         SetNextCourseData(&ID,&xNext,&yNext,&headNext);
         GetLenAndDirection(x, y, head,xNext,yNext,headNext,&len,&psi,&phi1);//コースに準じてx,y,head設定する必要あり
         SetCalcClothoid(len,psi,0.0f,phi1,&h,&phiV,&phiU,5);
@@ -209,18 +209,7 @@ void SelectHeadingInfo(float puPWM,float velocityMps,float yawRtGPS,float headin
     //停止していない & 速度が1.0m/s以上 & ほぼ直進 & GPSとIMUのヨーレートもほぼ直進
     if(puPWM > 95 && velocityMps > 1.0f && abs(yawRt) < 0.2 && abs(yawRtGPS-yawRt) < 0.1){
         *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
-        *headingOffsetIMU = Pi2pi(-yawAngle + headingGPS);                
-    }
-    else{
-        *headingOut = Pi2pi(yawAngle + *headingOffsetIMU);
-    }
-}
-//速度に応じてHeading情報持ちかえる
-void SelectHeadingInfoOld(float velocityMps,float yawAngle,float headingGPS,float *headingOffsetIMU,float *headingOut)
-{
-    if(puPWM > 95 && velocityMps > 1.0f){
-        *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
-        //*headingOffsetIMU = Pi2pi(-yawAngle + headingGPS);
+        *headingOffsetIMU = Pi2pi(-yawAngle + *headingOut);                
     }
     else{
         *headingOut = Pi2pi(yawAngle + *headingOffsetIMU);
