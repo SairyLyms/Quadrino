@@ -4,10 +4,10 @@
 
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
-#define AyLim 9.8 * 0.5f          //限界横G
-#define MaxVelLimCourse 3.0f
+#define AyLim 9.8 * 0.8f          //限界横G
+#define MaxVelLimCourse 5.0f
 
-#define PUPWMLimUPR 150       //駆動PWM上限値
+#define PUPWMLimUPR 180       //駆動PWM上限値
 #define PUPWMLimLWR  80       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
@@ -84,7 +84,7 @@ void setup(){
     Serial.print("z0,");Serial.print(z0);
     Serial.print("directionCp,");Serial.println(directionCp);
     SetVelocityLimInit(MaxVelLimCourse,AyLim,velLimInitp);//初回コース速度制限
-#if 0
+#if 1
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
@@ -101,12 +101,12 @@ void SetParamIMU(void)
 {
   accelGyro.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
   accelGyro.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
-  accelGyro.setDLPFMode(MPU6050_DLPF_BW_10);
-  accelGyro.setXAccelOffset(1054);
-  accelGyro.setYAccelOffset(2117);
-  accelGyro.setZAccelOffset(1600);
-  accelGyro.setXGyroOffset(-42);
-  accelGyro.setYGyroOffset(-1);
+  accelGyro.setDLPFMode(MPU6050_DLPF_BW_20);
+  accelGyro.setXAccelOffset(1017);
+  accelGyro.setYAccelOffset(2057);
+  accelGyro.setZAccelOffset(1608);
+  accelGyro.setXGyroOffset(-40);
+  accelGyro.setYGyroOffset(-5);
   accelGyro.setZGyroOffset(-9);
 }
 

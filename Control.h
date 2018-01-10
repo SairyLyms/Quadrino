@@ -207,7 +207,7 @@ void VMCStop(float *strPWM,float *puPWM)
 void SelectHeadingInfo(float puPWM,float velocityMps,float yawRtGPS,float headingGPS,float yawRt,float yawAngle,float sampletimes,float *headingOffsetIMU,float *headingOut)
 {
     //停止していない & 速度が1.0m/s以上 & ほぼ直進 & GPSとIMUのヨーレートもほぼ直進
-    if(puPWM > 95 && velocityMps > 1.0f && abs(yawRt) < 0.2 && abs(yawRtGPS-yawRt) < 0.1){
+    if(puPWM > 95 && velocityMps > 1.0f && abs(yawRt) < 0.1 && abs(yawRtGPS-yawRt) < 0.1){
         *headingOut = Pi2pi(headingGPS + yawRt * sampletimes);
         *headingOffsetIMU = Pi2pi(-yawAngle + *headingOut);                
     }
@@ -232,6 +232,7 @@ Serial.print(",ID,");Serial.print(ID);
 Serial.print(",odo,");Serial.print(odo);
 Serial.print(",strPWM,");Serial.print(strPWM);
 Serial.print(",puPWM,");Serial.print(puPWM);
+Serial.print(",headOffst,");Serial.print(headingOffset);
 Serial.println("");
 }
 
@@ -274,6 +275,7 @@ float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate
     static uint8_t countCurrentID = 0;
     static int lastID = 0;
     static float error_prior = 0,integral = 0;
+    #if 0
     float error = 0,derivative = 0,output = 0;
     if(ID != lastID){
         error_prior = 0;
@@ -288,7 +290,12 @@ float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate
     else{
         countCurrentID++;
     }
-    output = kP * (error + integral / tI + tD * derivative) + bias;
+    #endif
+    float error = targetYawRate - currentYawRate;
+    integral += (error * sampleTime);
+    float derivative = (error - error_prior)/sampleTime;
+    float output = kP * (error + integral / tI + tD * derivative) + bias;
+    
     output = constrain(output,40,140);
     error_prior = error;
     lastID = ID;
