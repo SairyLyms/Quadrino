@@ -4,8 +4,8 @@
 
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
-#define AyLim 9.8 * 0.8f          //限界横G
-#define MaxVelLimCourse 5.0f
+#define AyLim 9.8 * 0.5f          //限界横G
+#define MaxVelLimCourse 5.5f
 
 #define PUPWMLimUPR 180       //駆動PWM上限値
 #define PUPWMLimLWR  80       //駆動PWM下限値
@@ -66,7 +66,7 @@ Task T10ms(sampleTimems, TASK_FOREVER, &Task10ms, &runner,true);
 Task T20ms(sampleTimems * 2, TASK_FOREVER, &Task20ms, &runner,true);
 
 void setup(){
-    Serial.begin(115200);            // Start Serial Port at 57600 baud
+    Serial.begin(115200);            // Start Serial Port at 115200 baud
     Wire.begin();                   // Initialize the 'Wire' class for the I2C-bus.
     Wire.setClock(400000L);    
     GPSModuleInit();                // Venus838FLP: Startup GPS Module

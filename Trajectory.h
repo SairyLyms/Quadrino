@@ -16,7 +16,7 @@ void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
 void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1);
-void SetVelocityLimInit(float velLimitMax,float ayLim,uint16_t *velLimInitp);
+void SetVelocityLimInit(float velLimitMax,float muLim,uint16_t *velLimInitp);
 
 /************************************************************************
  * FUNCTION : クロソイド曲線パラメータ導出・設定関数(コース切替時のみ読み込み)
@@ -118,6 +118,8 @@ void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,floa
     Serial.print(",y,");Serial.print(y0 + h * integral.modulus()*sin(integral.phase()));
     Serial.print(",velMax,");
     velLimit < MaxVelocitymps(cv0,velLimitMax,ayLimit) ? Serial.print(velLimit) : Serial.print(MaxVelocitymps(cv0,velLimitMax,ayLimit));
+    Serial.print(",velMaxBase,");
+    Serial.print(velLimit);
     Serial.println("");
     S += w;    
   }
@@ -253,7 +255,7 @@ void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,flo
  * INPUT    : 車両最高速情報、最大横加速度
  * OUTPUT   : 最高速初期情報配列(m/s)
  ***********************************************************************/
-void SetVelocityLimInit(float velLimitMax,float ayLim,uint16_t *velLimInitp)
+void SetVelocityLimInit(float velLimitMax,float muLim,uint16_t *velLimInitp)
 {
     int NextCourseID = 0;
     float cvMax=0,deltaCv=0,cvMaxPrev=0,deltaCvPrev=0;
@@ -276,12 +278,13 @@ void SetVelocityLimInit(float velLimitMax,float ayLim,uint16_t *velLimInitp)
             CvMaxMin(h,phiV,phiU,NULL,&cvMax,NULL,NULL,&deltaCv);
             cvMax = abs(cvMax);  //速度の算出なので、曲率の絶対値を使用
             if(cvMaxPrev > cvMax && deltaCv < -0.1){//曲率が前回値より小さく、明らかに曲率が減少している場合
-                velLimInitp[i] = velLimitMax * 1000;
+                float velLimbyMu = (0.5 * ((velLimInitp[i-1] * 0.001f) + sqrtf(pow(velLimInitp[i-1] * 0.001f,2) + 4 * muLim * h)));
+                velLimbyMu < MaxVelLimCourse ? velLimInitp[i] = velLimbyMu * 1000 : velLimInitp[i] = MaxVelLimCourse * 1000;
             }
             else{
-                velLimInitp[i] = MaxVelocitymps(cvMax,velLimitMax,ayLim) * 1000;
-                i > 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[i-1] = MaxVelocitymps(cvMax,velLimitMax,ayLim) * 1000 : 0;
-                i == 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[lenCourseData-1] = MaxVelocitymps(cvMax,velLimitMax,ayLim) * 1000 : 0;
+                velLimInitp[i] = MaxVelocitymps(cvMax,velLimitMax,muLim) * 1000;
+                i > 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[i-1] = MaxVelocitymps(cvMax,velLimitMax,muLim) * 1000 : 0;
+                i == 1 && ((cvMax - cvMaxPrev) / cvMax) > 0.1 ? velLimInitp[lenCourseData-1] = MaxVelocitymps(cvMax,velLimitMax,muLim) * 1000 : 0;
             }
             cvMaxPrev = cvMax;deltaCvPrev = deltaCv;
             x = xNext;y = yNext;head = headNext;
