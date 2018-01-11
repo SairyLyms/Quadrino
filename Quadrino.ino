@@ -8,7 +8,7 @@
 #define MaxVelLimCourse 5.5f
 
 #define PUPWMLimUPR 180       //駆動PWM上限値
-#define PUPWMLimLWR  80       //駆動PWM下限値
+#define PUPWMLimLWR  0       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
 
