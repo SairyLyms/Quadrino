@@ -219,9 +219,10 @@ void SelectHeadingInfo(float puPWM,float velocityMps,float yawRtGPS,float headin
 void PrintInfo(void)
 {
 Serial.print(",Timems,");Serial.print(timems);
-Serial.print(",Mode,");Serial.print(stateMode,HEX);
+//Serial.print(",Mode,");Serial.print(stateMode,HEX);
 Serial.print(",x,");Serial.print(x);
 Serial.print(",y,");Serial.print(y);
+#if 0
 Serial.print(",heading,");Serial.print(head);
 Serial.print(",yawAng,");Serial.print(Pi2pi(yawAngle + headingOffset));
 Serial.print(",yawRt,");Serial.print(yawRt);
@@ -233,6 +234,7 @@ Serial.print(",odo,");Serial.print(odo);
 Serial.print(",strPWM,");Serial.print(strPWM);
 Serial.print(",puPWM,");Serial.print(puPWM);
 Serial.print(",headOffst,");Serial.print(headingOffset);
+#endif
 Serial.println("");
 }
 
