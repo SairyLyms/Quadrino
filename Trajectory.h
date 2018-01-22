@@ -8,6 +8,7 @@ void SetCalcClothoid(float len,float psi,float phi0,float phi1,float *h,float *p
 void CalcCurrentCurvature(float h,float phiV,float phiU,float odo);
 Complex slope(float phi0,float phiV, float phiU, float S);
 Complex CalcParamClothoid(float phiV,float phiU,int8_t n);
+Complex CalcParamClothoidGL(float phiV,float phiU);
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n);
 float Newton(float psi,float phi0,float phi1,float phiU,int8_t n);
 float MaxVelocitymps(float curvature,float velLimitMax,float maxAy);
@@ -29,7 +30,8 @@ void SetCalcClothoid(float len,float psi,float phi0,float phi1,float *h,float *p
   float calclambda,psicalc;
   *phiU = Newton(psi,phi0,phi1,M_PI,n);
   *phiV = phi1 - phi0 - *phiU;
-  clothid = CalcParamClothoid(*phiV,*phiU,n);
+  //clothid = CalcParamClothoid(*phiV,*phiU,n);
+  clothid = CalcParamClothoidGL(*phiV,*phiU); //ガウス-ルジャンドル法
   *h = len / clothid.modulus();
 }
 
@@ -43,7 +45,8 @@ void SetCalcClothoid(float len,float psi,float phi0,float phi1,float *h,float *p
    Complex clothid;
    *phiV = (strPWM - strPwmOffset) / KStrAngle2PWM / WHEELBase;
    *phiU = phi1 - phi0 - *phiV;
-   clothid = CalcParamClothoid(*phiV,*phiU,n);
+   //clothid = CalcParamClothoid(*phiV,*phiU,n);
+   clothid = CalcParamClothoidGL(*phiV,*phiU); //ガウス-ルジャンドル法
    *h = len / clothid.modulus();
  }
  
@@ -73,7 +76,7 @@ void CalcCurrentCurvature(float h,float phiV,float phiU,float odo,float *cvCul)
  * INPUT    : 初期ヨー角(車体滑り角??)、初期曲率、縮率、正規化距離
  * OUTPUT   : クロソイド曲線式傾き(複素数)
  ***********************************************************************/
-Complex slope(float phi0,float phiV, float phiU, float S)
+Complex Slope(float phi0,float phiV, float phiU, float S)
 {
   float phi = phi0 + phiV * S + phiU * S * S;
 	Complex I(0,phi);
@@ -93,9 +96,28 @@ Complex CalcParamClothoid(float phiV,float phiU,int8_t n)
   // === Simpson 法による積分 (開始） ===
   S = 0;
   for (int8_t i=0; i<n; i++) {
-    integral += (slope(0, phiV, phiU, S) + slope(0, phiV, phiU, S+w)) * 0.5 * w;
+    integral += (Slope(0, phiV, phiU, S) + Slope(0, phiV, phiU, S+w)) * 0.5 * w;
     S += w;
   }
+  return integral;
+}
+
+/************************************************************************
+ * FUNCTION : クロソイド曲線積分(ガウス-ルジャンドル積分法)
+ * INPUT    : 初期曲率、縮率、分割数
+ * OUTPUT   : クロソイド曲線(複素数)
+ ***********************************************************************/
+Complex CalcParamClothoidGL(float phiV,float phiU)
+{
+  Complex integral = (0,0);// 積分結果
+    float xGL[4] = {-0.8611f,-0.34f,0.34f,0.8611f};
+    float wGL[4] = {0.3479f,0.6521f,0.6521f,0.3479f};
+  // === ガウス-ルジャンドル積分 ===
+  for (int8_t i=0; i<4; i++){
+      float sGL = 0.5 * xGL[i] + 0.5;
+      integral += Slope(0, phiV, phiU, sGL) * wGL[i];
+    }
+  integral *= 0.5;
   return integral;
 }
 
@@ -111,7 +133,7 @@ void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,floa
   //CvMaxMin(h,phiV,phiU,&posCvMax,&cvMax,&posCvMin,&cvMin,&deltaCv);//区間最大曲率
   for (int8_t i=0; i<n; i++){
     lengthTotal += h/n;
-    integral += (slope(phi0, phiV, phiU, S) + slope(phi0, phiV, phiU, S+w)) * 0.5 * w;
+    integral += (Slope(phi0, phiV, phiU, S) + Slope(phi0, phiV, phiU, S+w)) * 0.5 * w;
     CalcCurrentCurvature(h,phiV,phiU,h*(S),&cv0);
     Serial.print(",len,");Serial.print(lengthTotal);
     Serial.print(",x,");Serial.print(x0 + h * integral.modulus()*cos(integral.phase()));
@@ -123,6 +145,13 @@ void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,floa
     Serial.println("");
     S += w;    
   }
+#if 0 //ガウス-ルジャンドル積分の確認(180122 OK)
+  Complex integralGL = (0,0);// 積分結果
+  integralGL = CalcParamClothoidGL(phiV,phiU);
+  Serial.print(",xGL,");Serial.print(x0 + h * integralGL.modulus()*cos(integralGL.phase() + phi0));
+  Serial.print(",yGL,");Serial.print(y0 + h * integralGL.modulus()*sin(integralGL.phase() + phi0));
+  Serial.println("");
+#endif
 }
 
 /************************************************************************
@@ -133,7 +162,8 @@ void CheckClothoidwVelLimut(float x0,float y0,float phi0,float h,float phiV,floa
 float FunctoSolve(float psi,float phi0,float phi1,float phiU,int8_t n)
 {
   float phiV = phi1 - phi0 - phiU;
-  return CalcParamClothoid(phiV,phiU,n).phase() - psi;
+  //return CalcParamClothoid(phiV,phiU,n).phase() - psi;
+  return CalcParamClothoidGL(phiV,phiU).phase() - psi;//ガウス-ルジャンドル法
 }
 
 /************************************************************************

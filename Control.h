@@ -224,7 +224,7 @@ Serial.print(",x,");Serial.print(x);
 Serial.print(",y,");Serial.print(y);
 #if 0
 Serial.print(",heading,");Serial.print(head);
-Serial.print(",yawAng,");Serial.print(Pi2pi(yawAngle + headingOffset));
+Serial.print(",yawAng,");Serial.print(yawAngle);
 Serial.print(",yawRt,");Serial.print(yawRt);
 Serial.print(",yawRtGPS,");Serial.print(yawRtGPS);
 Serial.print(",velmps,");Serial.print(velmps);
