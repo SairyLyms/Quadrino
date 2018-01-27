@@ -22,6 +22,9 @@ float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps);
 float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
 float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime);
+void TxInfo(void);
+void splitData(void *dataToSplit,uint8_t dataLen,uint8_t *splitDataPt);
+
 
 int8_t StateManager(float x,float y,int8_t stateMode){
     int8_t key = 0;
@@ -237,6 +240,7 @@ Serial.print(",headOffst,");Serial.print(headingOffset);
 #endif
 Serial.println("");
 }
+
 
 float StrControlFF(float cvCul,float strPwmOffset)
 {

@@ -26,6 +26,7 @@
 #include "IMUFunc.h"
 #include "Trajectory.h"
 #include "Control.h"
+#include "TxData.h"
 
 // ================================================================
 // ===              	Prototype Def.			                      ===
@@ -159,6 +160,7 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   stateMode = StateManager(x,y,stateMode);
   VehicleMotionControl(stateMode);
   PrintInfo();
+  TxEncodeVehicleData(x,y,head,yawRt,velmps);
 
   //Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
 #if 0
