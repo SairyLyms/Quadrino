@@ -64,7 +64,7 @@ int8_t stateMode = 0;
 //  Setup Tasks
 //  -----------------------------------------------------------------------------
 Task T10ms(sampleTimems, TASK_FOREVER, &Task10ms, &runner,true);
-Task T20ms(sampleTimems * 2, TASK_FOREVER, &Task20ms, &runner,true);
+Task T50ms(sampleTimems * 5, TASK_FOREVER, &Task50ms, &runner,true);
 
 void setup(){
     Serial.begin(115200);            // Start Serial Port at 115200 baud
@@ -161,8 +161,6 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
   stateMode = StateManager(x,y,stateMode);
   VehicleMotionControl(stateMode);
-  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps);
-  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h,odo);
   //Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
 #if 0
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);
@@ -174,12 +172,14 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
  }
  
  /************************************************************************
-  * FUNCTION : 2周期処理
+  * FUNCTION : 5周期処理
   * INPUT    : なし
   * OUTPUT   : なし
   ***********************************************************************/
- void Task20ms(void)
+ void Task50ms(void)
  {
+  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps);
+  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h,odo);
  }
 
  /************************************************************************
