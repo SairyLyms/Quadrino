@@ -44,7 +44,7 @@ void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P
 {
   float x[2] = {},y[2] = {},z[2] = {};
   for(int8_t i = 0;i<2;i++){
-    Serial.print(",lat,");Serial.print(latLon[i][0],8);Serial.print(",lon,");Serial.println(latLon[i][1],8);    
+    //Serial.print(",lat,");Serial.print(latLon[i][0],8);Serial.print(",lon,");Serial.println(latLon[i][1],8);    
     Llh2Ecef(latLon[i][0] * M_PI / 180,latLon[i][1] * M_PI / 180,height,&x[i],&y[i],&z[i]);
   }
   x[1] -= x[0];
@@ -53,7 +53,7 @@ void GetDirectionPoint2Point(float latLon[2][2],float height,float *directionP2P
   RotAroudZ(&x[1],&y[1],&z[1],latLon[1][1] * M_PI / 180);
   RotAroudY(&x[1],&y[1],&z[1],(0.5*M_PI - latLon[1][0] * M_PI / 180));  
   RotAroudZ(&x[1],&y[1],&z[1],0.5*M_PI);
-  Serial.print(",x,");Serial.print(x[1]);Serial.print(",y,");Serial.println(y[1]);      
+  //Serial.print(",x,");Serial.print(x[1]);Serial.print(",y,");Serial.println(y[1]);      
   *directionP2P = atan2f(x[1],-y[1]);
 }
 

@@ -79,13 +79,15 @@ void setup(){
     FStr.attach(3,1000,2000);
     PowUnit.attach(5,1000,2000);
     AHRS.begin(100.0f);
+#if 0
     Serial.print("heightElp,");Serial.print(heightCenter);
     Serial.print("x0,");Serial.print(x0);
     Serial.print("y0,");Serial.print(y0);
     Serial.print("z0,");Serial.print(z0);
     Serial.print("directionCp,");Serial.println(directionCp);
+#endif
     SetVelocityLimInit(MaxVelLimCourse,AyLim,velLimInitp);//初回コース速度制限
-#if 1
+#if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
       float len,psi,phi1,h,phiV,phiU;
       SetNextCourseData(&ID,&xNext,&yNext,&headNext);
@@ -159,9 +161,8 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ReadIMU(sampletimes,&yawRt,&yawAngle);  //IMU読み込み
   stateMode = StateManager(x,y,stateMode);
   VehicleMotionControl(stateMode);
-  PrintInfo();
-  TxEncodeVehicleData(x,y,head,yawRt,velmps);
-
+  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps);
+  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h,odo);
   //Serial.print(",stateMode,");Serial.print(stateMode,HEX);Serial.println(",");
 #if 0
   Serial.print(",time,");Serial.print(timems);Serial.print(",SampleTime,");Serial.print(sampletimes);

@@ -31,7 +31,7 @@ int8_t StateManager(float x,float y,int8_t stateMode){
     stateMode = SMLimitArea(x,y,stateMode);
     if(x && y && stateMode & 0x01){                                        //x,yが0でなく、走行可能範囲内(stateModeの0ビット目 == 1)の場合
         switch(stateMode){
-            case 0x01:  Serial.print("Calib : 'c' ,");
+            case 0x01:  //Serial.print("Calib : 'c' ,");
                         if(Serial.available() && Serial.read() == 'c'){
                             stateMode = SMHeadCalib(stateMode);
                         }
@@ -40,7 +40,7 @@ int8_t StateManager(float x,float y,int8_t stateMode){
             case 0x05:  
             case 0x07:  stateMode = SMHeadCalib(stateMode);
                         break;
-            case 0x09:  Serial.print("Start : 'r' ,");
+            case 0x09:  //Serial.print("Start : 'r' ,");
                         if(Serial.available() && Serial.read() == 'r'){
                             stateMode = SMChangeRunState(stateMode);    //走行開始
                         }
@@ -55,7 +55,7 @@ int8_t StateManager(float x,float y,int8_t stateMode){
     }
     else{
         stateMode = SMChangeStopState(stateMode);
-        Serial.print(",Out of course,");                      //走行可能範囲外
+        //Serial.print(",Out of course,");                      //走行可能範囲外
     }
     return stateMode;
 }
@@ -187,8 +187,8 @@ void VMCRunNorm(float *strPWM,float *puPWM)
     }
     CalcCurrentCurvature(h,phiV,phiU,odo,&cvCul);
     MaxVelocitympsP(cvCul,velLimInitp[ID] * 0.001,AyLim,&maxVel);
-    Serial.print(",cvCul,");Serial.print(cvCul);
-    Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
+    //Serial.print(",cvCul,");Serial.print(cvCul);
+    //Serial.print(",YawRtTgt,");Serial.print(velmps * cvCul);
     //*strPWM = StrControlFF(cvCul,strPwmOffset);                 //スタビリティファクタ補正なし
     //*strPWM = StrControlFFwSF(cvCul,strPwmOffset,velmps);     //スタビリティファクタ補正あり
     *strPWM = StrControlFFFB(ID,cvCul,yawRt,velmps * cvCul,sampletimes,strPwmOffset,velmps);
@@ -221,11 +221,11 @@ void SelectHeadingInfo(float puPWM,float velocityMps,float yawRtGPS,float headin
 
 void PrintInfo(void)
 {
+#if 0
 Serial.print(",Timems,");Serial.print(timems);
 //Serial.print(",Mode,");Serial.print(stateMode,HEX);
 Serial.print(",x,");Serial.print(x);
 Serial.print(",y,");Serial.print(y);
-#if 0
 Serial.print(",heading,");Serial.print(head);
 Serial.print(",yawAng,");Serial.print(yawAngle);
 Serial.print(",yawRt,");Serial.print(yawRt);
@@ -237,8 +237,8 @@ Serial.print(",odo,");Serial.print(odo);
 Serial.print(",strPWM,");Serial.print(strPWM);
 Serial.print(",puPWM,");Serial.print(puPWM);
 Serial.print(",headOffst,");Serial.print(headingOffset);
-#endif
 Serial.println("");
+#endif
 }
 
 
