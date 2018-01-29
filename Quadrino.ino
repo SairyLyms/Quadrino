@@ -178,8 +178,8 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ***********************************************************************/
  void Task50ms(void)
  {
-  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps);
-  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h,odo);
+  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps,odo);
+  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h);
  }
 
  /************************************************************************

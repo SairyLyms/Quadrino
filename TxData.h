@@ -16,15 +16,16 @@ union uI16ToByte
     uint8_t byte[sizeof(integer)];
 };
 
-void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float yawAngle,float yawRt,float vel);
-void TxEncodeCourseData(int CourseID,float xNext,float yNext,float headNext,float phiV,float phiU,float h,float odo);
+void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo);
+void TxEncodeCourseData(int CourseID,float xNext,float yNext,float headNext,float phiV,float phiU,float h);
 void AddCheckSum(uint8_t *arryToAddCheckSum,uint8_t nByte);
 
-void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float yawAngle,float yawRt,float vel)
+void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo)
 {
     union sI32ToByte I32Bx,I32By;
     union sI16ToByte I16Bheading,I16ByawAngle,I16ByawRt;
-    union uI16ToByte uI16Bvel;
+    union uI16ToByte uI16Bvel,uI16Bodo;
+
     uint8_t header[2] = {0xEC,0xAB};
     uint8_t footer[2] = {0xED,0xDA};
     uint8_t vehicleDatabuf[32] = {};
@@ -39,6 +40,7 @@ void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float ya
     I16ByawAngle.integer = (int16_t)(yawAngle * 10000);memcpy(&vehicleDatabuf[12],I16ByawAngle.byte,2);
     I16ByawRt.integer = (int16_t)(yawRt * 1000);memcpy(&vehicleDatabuf[14],I16ByawRt.byte,2);
     uI16Bvel.integer = (uint16_t)(vel * 100);memcpy(&vehicleDatabuf[16],uI16Bvel.byte,2);
+    uI16Bodo.integer = (uint16_t)(odo * 100);memcpy(&vehicleDatabuf[18],uI16Bodo.byte,2);
 
     AddCheckSum(vehicleDatabuf,sizeof(vehicleDatabuf));
     Serial.write(header,sizeof(header));
@@ -46,14 +48,14 @@ void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float ya
     Serial.write(footer,sizeof(footer));
 }
 
-void TxEncodeCourseData(int CourseID,float xNext,float yNext,float headNext,float phiV,float phiU,float h,float odo)
+void TxEncodeCourseData(int CourseID,float xNext,float yNext,float headNext,float phiV,float phiU,float h)
 {
     static int lastCourseID = 0;
 //コースID変更時のみ送信
 if(CourseID != lastCourseID){
         union sI32ToByte I32BxNext,I32ByNext;
-        union sI16ToByte I16BhaedNext,I16BphiV,I16BphiU;
-        union uI16ToByte uI16Bh,uI16Bodo;
+        union sI16ToByte I16BheadNext,I16BphiV,I16BphiU;
+        union uI16ToByte uI16Bh;
 
         uint8_t header[2] = {0xEC,0xAB};
         uint8_t footer[2] = {0xED,0xDA};
@@ -65,11 +67,10 @@ if(CourseID != lastCourseID){
         memcpy(&courseDatabuf[2],&CourseID,2);
         I32ByNext.integer = (int32_t)(xNext * 100);memcpy(&courseDatabuf[4],I32BxNext.byte,4);
         I32ByNext.integer = (int32_t)(yNext * 100);memcpy(&courseDatabuf[8],I32ByNext.byte,4);
-        I16BhaedNext.integer = (int16_t)(headNext * 10000);memcpy(&courseDatabuf[12],I16BhaedNext.byte,2);
+        I16BheadNext.integer = (int16_t)(headNext * 10000);memcpy(&courseDatabuf[12],I16BheadNext.byte,2);
         I16BphiV.integer = (int16_t)(phiV * 1000);memcpy(&courseDatabuf[14],I16BphiV.byte,2);
         I16BphiU.integer = (int16_t)(phiU * 1000);memcpy(&courseDatabuf[16],I16BphiU.byte,2);
         uI16Bh.integer = (uint16_t)(h * 100);memcpy(&courseDatabuf[18],uI16Bh.byte,2);
-        uI16Bodo.integer = (uint16_t)(odo * 100);memcpy(&courseDatabuf[20],uI16Bodo.byte,2);
 
         AddCheckSum(courseDatabuf,sizeof(courseDatabuf));
         Serial.write(header,sizeof(header));
