@@ -172,14 +172,7 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ***********************************************************************/
  void Task50ms(void)
  {
-  static int16_t lastCourseID;
-  if(ID == lastCourseID){
-    TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps,odo);
-  }
-  else{
-    TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h);
-  }
-  lastCourseID = ID;
+   TxEncodeData(stateMode,ID,x,y,head,yawAngle,yawRt,velmps,odo,xNext,yNext,headNext,phiV,phiU,h);
  }
 
  /************************************************************************
