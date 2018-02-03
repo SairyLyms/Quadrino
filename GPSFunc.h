@@ -167,4 +167,3 @@ void RotAroudZ(float* x,float* y,float* z,float angleRad)
   *x = buf[0];
   *y = buf[1];
 }
-

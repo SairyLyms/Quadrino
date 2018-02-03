@@ -15,7 +15,7 @@ float MaxVelocitymps(float curvature,float velLimitMax,float maxAy);
 void MaxVelocitympsP(float curvature,float velLimitMax,float maxAy,float *maxVelocity);
 void CvMaxMin(float valueStart,float valueEnd,float h,float* posMax,float* cvMax,float* cvMin,float* posMin,float* deltaCv);
 void CheckClothoid(float h,float phiV,float phiU,int8_t n);
-void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext);
+void SetNextCourseData(int16_t* NextCourseID,float* xNext,float* yNext,float *headNext);
 void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,float headNext,float* len,float* psi,float* phi1);
 void SetVelocityLimInit(float velLimitMax,float muLim,uint16_t *velLimInitp);
 
@@ -252,7 +252,7 @@ void CvMaxMin(float h,float phiV,float phiU,float* posCvMax,float* cvMax,float* 
  * INPUT    : 目標地点ID(ポインタ)、目標地点x位置(ポインタ)、目標地点y位置(ポインタ)、目標地点方位(ポインタ)
  * OUTPUT   : 目標地点ID(ポインタ)、目標地点x位置(ポインタ)、目標地点y位置(ポインタ)、目標地点方位(ポインタ)
  ***********************************************************************/
-void SetNextCourseData(int* NextCourseID,float* xNext,float* yNext,float *headNext)
+void SetNextCourseData(int16_t* NextCourseID,float* xNext,float* yNext,float *headNext)
 {
     *NextCourseID >= lenCourseData-1 ? *NextCourseID = 1 : (*NextCourseID)++;
     *xNext = (float)CourseData[*NextCourseID][0] * courseScale;
@@ -287,7 +287,7 @@ void GetLenAndDirection(float x, float y, float head,float xNext,float yNext,flo
  ***********************************************************************/
 void SetVelocityLimInit(float velLimitMax,float muLim,uint16_t *velLimInitp)
 {
-    int NextCourseID = 0;
+    int16_t NextCourseID = 0;
     float cvMax=0,deltaCv=0,cvMaxPrev=0,deltaCvPrev=0;
     float x=0,y=0,head=0,xNext=0,yNext=0,headNext=0;
     for(int j=0;j<2;j++){   //スタート軌跡とゴール軌跡を接続させるため2周分演算する

@@ -5,7 +5,7 @@
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
 #define AyLim 9.8 * 0.5f          //限界横G
-#define MaxVelLimCourse 5.5f
+#define MaxVelLimCourse 3.0f
 
 #define PUPWMLimUPR 180       //駆動PWM上限値
 #define PUPWMLimLWR  0       //駆動PWM下限値
@@ -54,7 +54,7 @@ float strPwmOffset = 90;
 float x0 = 0.0f,y0 = 0.0f,z0 = 0.0f;
 uint8_t sampleTimems = 10;
 
-int ID = 0;
+int16_t ID = 0;
 float head,xNext,yNext,headNext;
 float h,phiV,phiU,odo;
 float maxVel;
@@ -79,13 +79,7 @@ void setup(){
     FStr.attach(3,1000,2000);
     PowUnit.attach(5,1000,2000);
     AHRS.begin(100.0f);
-#if 0
-    Serial.print("heightElp,");Serial.print(heightCenter);
-    Serial.print("x0,");Serial.print(x0);
-    Serial.print("y0,");Serial.print(y0);
-    Serial.print("z0,");Serial.print(z0);
-    Serial.print("directionCp,");Serial.println(directionCp);
-#endif
+
     SetVelocityLimInit(MaxVelLimCourse,AyLim,velLimInitp);//初回コース速度制限
 #if 0
     for(int i=0;i<lenCourseData;i++){                       //軌道生成デバッグ
@@ -178,8 +172,14 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ***********************************************************************/
  void Task50ms(void)
  {
-  TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps,odo);
-  TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h);
+  static int16_t lastCourseID;
+  if(ID == lastCourseID){
+    TxEncodeVehicleData(stateMode,x,y,head,yawAngle,yawRt,velmps,odo);
+  }
+  else{
+    TxEncodeCourseData(ID,xNext,yNext,headNext,phiV,phiU,h);
+  }
+  lastCourseID = ID;
  }
 
  /************************************************************************

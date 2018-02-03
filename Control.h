@@ -2,7 +2,7 @@ extern unsigned long timems;
 extern volatile float x,y,heading,velmps;
 extern float yawAngle,yawRt,yawRtGPS,sampletimes,headingOffset,strPwmOffset,strPWM,puPWM,gpsSampletimes;
 extern Servo FStr,PowUnit;
-extern int ID;
+extern int16_t ID;
 extern float head,xNext,yNext,headNext;
 extern float h,phiV,phiU,odo;
 extern float maxVel;
@@ -19,9 +19,9 @@ void VMCStop(float *strPWM,float *puPWM);
 void SelectHeadingInfo(float puPWM,float velocityMps,float yawRtGPS,float headingGPS,float yawRt,float yawAngle,float sampletimes,float *headingOffsetIMU,float *headingOut);
 float StrControlFF(float cvCul,float strPwmOffset);
 float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps);
-float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps);
+float StrControlFFFB(int16_t ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps);
 float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset);
-float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime);
+float SpdControlPID(int16_t ID,float currentSpeed,float targetSpeed,float sampleTime);
 void TxInfo(void);
 void splitData(void *dataToSplit,uint8_t dataLen,uint8_t *splitDataPt);
 
@@ -275,11 +275,11 @@ float StrControlFFwSF(float cvCul,float strPwmOffset,float velmps)
     return constrain(pwmFF,40,140);
 }
 
-float StrControlFFFB(int ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps)
+float StrControlFFFB(int16_t ID,float cvCul,float currentYawRate,float targetYawRate,float sampleTime,float strPwmOffset,float velmps)
 {
     float kP = 20,tI = 0.205,tD = 0.02625,bias = StrControlFFwSF(cvCul,strPwmOffset,velmps);
     static uint8_t countCurrentID = 0;
-    static int lastID = 0;
+    static int16_t lastID = 0;
     static float error_prior = 0,integral = 0;
     #if 0
     float error = 0,derivative = 0,output = 0;
@@ -333,11 +333,11 @@ float StrControlPID(float currentYawRate,float targetYawRate,float sampleTime,fl
  * INPUT    : 現在の速度、目標速度
  * OUTPUT   : モータ制御指示値
  ***********************************************************************/
-float SpdControlPID(int ID,float currentSpeed,float targetSpeed,float sampleTime)
+float SpdControlPID(int16_t ID,float currentSpeed,float targetSpeed,float sampleTime)
 {
 	float kP = 8,tI = 0.5,tD = 0.125,bias = 90;
     static float error_prior = 0,integral = 0;
-    static int lastID = 0;
+    static int16_t lastID = 0;
     float error,derivative,output;
 	error = targetSpeed - currentSpeed;
 	integral += (error * sampleTime);
