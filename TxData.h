@@ -16,6 +16,12 @@ union uI16ToByte
     uint8_t byte[sizeof(integer)];
 };
 
+union uI8ToByte
+{
+    uint8_t integer;
+    uint8_t byte[sizeof(integer)];
+};
+
 void TxEncodeVehicleData(int8_t stateMode,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo);
 void TxEncodeCourseData(int16_t CourseID,float xNext,float yNext,float headNext,float phiV,float phiU,float h);
 void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo, float xNext,float yNext,float headNext,float phiV,float phiU,float h);
@@ -76,11 +82,12 @@ void TxEncodeCourseData(int16_t courseID,float xNext,float yNext,float headNext,
     Serial.write(footer,sizeof(footer));
 }
 
-void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo, float xNext,float yNext,float headNext,float phiV,float phiU,float h)
+void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo, float xNext,float yNext,float headNext,float phiV,float phiU,float h,float strPWM,float puPWM)
 {
     union sI32ToByte I32Bx,I32By,I32BxNext,I32ByNext;
     union sI16ToByte I16Bheading,I16ByawAngle,I16ByawRt,I16BheadNext,I16BphiV,I16BphiU,I16BcourseID;
     union uI16ToByte uI16Bvel,uI16Bodo,uI16Bh;
+    union uI8ToByte uI8BstrPWM,uI8BpuPWM;
 
     uint8_t header[2] = {0xEC,0xAB};
     uint8_t footer[2] = {0xED,0xDA};
@@ -103,6 +110,8 @@ void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float headin
     I16BphiV.integer = (int16_t)(phiV * 1000);memcpy(&databuf[32],I16BphiV.byte,2);
     I16BphiU.integer = (int16_t)(phiU * 1000);memcpy(&databuf[34],I16BphiU.byte,2);
     uI16Bh.integer = (uint16_t)(h * 100);memcpy(&databuf[36],uI16Bh.byte,2);
+    uI8BstrPWM.integer = (uint8_t)(strPWM);memcpy(&databuf[38],uI8BstrPWM.byte,1);
+    uI8BpuPWM.integer = (uint8_t)(puPWM);memcpy(&databuf[39],uI8BpuPWM.byte,1);
 
     AddCheckSum(databuf,sizeof(databuf));
     Serial.write(header,sizeof(header));

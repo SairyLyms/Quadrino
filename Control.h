@@ -139,7 +139,7 @@ void VMCHeadCalib(int8_t stateMode,float currentYawRate,float sampleTime,float h
     static float bufx = 0,bufy = 0;
     if(stateMode == 0x03 || stateMode == 0x05){
         *strPWM = StrControlPID(currentYawRate,0.0f,sampleTime,90);        
-        *puPWM = 110;
+        *puPWM = 105;
     }
     else{
         *strPWM = 90;

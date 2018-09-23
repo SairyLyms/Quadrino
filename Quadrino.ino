@@ -4,8 +4,8 @@
 
 #define LimitAreaRun 20.0f  //走行可能範囲(m)
 #define PWMInitCenter 90.0f //PWM初期中点値
-#define AyLim 9.8 * 0.5f          //限界横G
-#define MaxVelLimCourse 3.0f
+#define AyLim 9.8 * 0.6f          //限界横G
+#define MaxVelLimCourse 8.0f
 
 #define PUPWMLimUPR 180       //駆動PWM上限値
 #define PUPWMLimLWR  0       //駆動PWM下限値
@@ -172,7 +172,7 @@ void GetSampleTime(unsigned long* timems,float *sampletimes)
   ***********************************************************************/
  void Task50ms(void)
  {
-   TxEncodeData(stateMode,ID,x,y,head,yawAngle,yawRt,velmps,odo,xNext,yNext,headNext,phiV,phiU,h);
+   TxEncodeData(stateMode,ID,x,y,head,yawAngle,yawRt,velmps,odo,xNext,yNext,headNext,phiV,phiU,h,strPWM,puPWM);
  }
 
  /************************************************************************
