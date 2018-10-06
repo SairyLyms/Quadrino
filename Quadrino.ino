@@ -7,7 +7,7 @@
 #define AyLim 9.8 * 0.4f          //限界横G
 #define MaxVelLimCourse 4.0f
 
-#define PUPWMLimUPR 180       //駆動PWM上限値
+#define PUPWMLimUPR 130       //駆動PWM上限値
 #define PUPWMLimLWR  0       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
