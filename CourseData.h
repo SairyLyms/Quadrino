@@ -8,12 +8,12 @@
 #if 1
 volatile const int16_t CourseData[][3]    =
 {{0  , 0, 0         },  //初期位置(0,0,0)
-{8,-3,0},
-{8,3,M_PI * 10000},
-{0,0,atan2(-3,-8)*10000},
-{-8,-3,M_PI * 10000},
-{-8,3,0},
-{0,0,atan2(-3,8)*10000}
+{8,-4,0},
+{8,4,M_PI * 10000},
+{0,0,atan2(-4,-8)*10000},
+{-8,-4,M_PI * 10000},
+{-8,4,0},
+{0,0,atan2(-4,8)*10000}
 };
 #endif
 #if 0
@@ -30,7 +30,7 @@ volatile const int16_t CourseData[][3]    =
 };
 #endif
 
-volatile const float latlonCp[2][2] = {{38.5158917, 140.3969224},{38.5159153, 140.3971073}};
+volatile const float latlonCp[2][2] = {{35.66745000, 139.79096500},{35.66730667, 139.79081167}};
 //volatile const float latlonCp[2][2] = {{36.567874, 139.995864},{36.567874, 139.995764}};
 volatile const float heightCenter = 188.0f;
 const float latlonCenterRad[2] = {M_PI / 180 * 0.5 * (latlonCp[0][0] + latlonCp[1][0]),M_PI / 180 * 0.5 * (latlonCp[0][1] + latlonCp[0][1])};

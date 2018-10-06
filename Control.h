@@ -203,7 +203,7 @@ void VMCStop(float *strPWM,float *puPWM)
     xNext = 0;yNext = 0;headNext = 0;
     h=0;phiV=0;phiU=0;odo=0;   
     *strPWM = 90;
-    *puPWM = 90;
+    *puPWM = 0;
 }
 
 //GPSのHeading情報飛び防止
