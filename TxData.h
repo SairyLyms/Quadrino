@@ -127,8 +127,7 @@ void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float headin
     uI8BpuPWM.integer = (uint8_t)(puPWM);memcpy(&databuf[39],uI8BpuPWM.byte,1);
     F32BLat.value = venus_ctx.location.latitude;memcpy(&databuf[40],F32BLat.byte,4);
     F32BLon.value = venus_ctx.location.longitude;memcpy(&databuf[44],F32BLon.byte,4);
-
-    Serial.print(venus_ctx.location.longitude);
+    
     AddCheckSum(databuf,sizeof(databuf));
     Serial.write(header,sizeof(header));
     Serial.write(databuf,sizeof(databuf));
