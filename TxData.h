@@ -96,8 +96,7 @@ void TxEncodeCourseData(int16_t courseID,float xNext,float yNext,float headNext,
 
 void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float heading,float yawAngle,float yawRt,float vel,float odo, float xNext,float yNext,float headNext,float phiV,float phiU,float h,float strPWM,float puPWM)
 {
-    union F32ToByte F32BLat,F32BLon,F32BAlt;
-    union sI32ToByte I32Bx,I32By,I32BxNext,I32ByNext;
+    union sI32ToByte I32Bx,I32By,I32BxNext,I32ByNext,I32BLat,I32BLon,I32BAlt;;
     union sI16ToByte I16Bheading,I16ByawAngle,I16ByawRt,I16BheadNext,I16BphiV,I16BphiU,I16BcourseID;
     union uI16ToByte uI16Bvel,uI16Bodo,uI16Bh;
     union uI8ToByte uI8BstrPWM,uI8BpuPWM;
@@ -125,9 +124,9 @@ void TxEncodeData(int8_t stateMode,int16_t courseID,float x,float y,float headin
     uI16Bh.integer = (uint16_t)(h * 100);memcpy(&databuf[36],uI16Bh.byte,2);
     uI8BstrPWM.integer = (uint8_t)(strPWM);memcpy(&databuf[38],uI8BstrPWM.byte,1);
     uI8BpuPWM.integer = (uint8_t)(puPWM);memcpy(&databuf[39],uI8BpuPWM.byte,1);
-    F32BLat.value = venus_ctx.location.latitude;memcpy(&databuf[40],F32BLat.byte,4);
-    F32BLon.value = venus_ctx.location.longitude;memcpy(&databuf[44],F32BLon.byte,4);
-    F32BAlt.value = venus_ctx.location.ellipsoid_alt;memcpy(&databuf[48],F32BAlt.byte,4);
+    I32BLat.integer = venus_ctx.location.latitude;memcpy(&databuf[40],I32BLat.byte,4);
+    I32BLon.integer = venus_ctx.location.longitude;memcpy(&databuf[44],I32BLon.byte,4);
+    I32BAlt.integer = venus_ctx.location.ellipsoid_alt;memcpy(&databuf[48],I32BAlt.byte,4);
     
     AddCheckSum(databuf,sizeof(databuf));
     Serial.write(header,sizeof(header));

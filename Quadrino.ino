@@ -7,7 +7,7 @@
 #define AyLim 9.8 * 0.4f          //限界横G
 #define MaxVelLimCourse 4.0f
 
-#define PUPWMLimUPR 130       //駆動PWM上限値
+#define PUPWMLimUPR 180       //駆動PWM上限値
 #define PUPWMLimLWR  0       //駆動PWM下限値
 //  Include Header Files
 //  -----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ void setup(){
     Wire.begin();                   // Initialize the 'Wire' class for the I2C-bus.
     Wire.setClock(400000L);    
     GPSModuleInit();                // Venus838FLP: Startup GPS Module
-    //GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
+    GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
     Llh2Ecef(latlonCenterRad[0],latlonCenterRad[1],heightCenter,&x0,&y0,&z0); //原点座標設定
     GetDirectionPoint2Point(latlonCp,heightCenter,&directionCp);
     accelGyro.initialize();
