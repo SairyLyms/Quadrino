@@ -71,7 +71,7 @@ void setup(){
     Wire.begin();                   // Initialize the 'Wire' class for the I2C-bus.
     Wire.setClock(400000L);    
     GPSModuleInit();                // Venus838FLP: Startup GPS Module
-    GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
+    //GPSConfigureDefaults();         // Venus838FLP: Configure Default Values        
     Llh2Ecef(latlonCenterRad[0],latlonCenterRad[1],heightCenter,&x0,&y0,&z0); //原点座標設定
     GetDirectionPoint2Point(latlonCp,heightCenter,&directionCp);
     accelGyro.initialize();

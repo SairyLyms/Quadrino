@@ -30,8 +30,8 @@ volatile const int16_t CourseData[][3]    =
 };
 #endif
 //volatile const float latlonCp[2][2] = {{35.66743000, 139.79096500},{35.66730667, 139.79081167}};
-volatile const float latlonCp[2][2] = {{36.56792800, 139.99623100},{36.56792800, 139.99623100}};
-volatile const float heightCenter = 188.0f;
+volatile const float latlonCp[2][2] = {{36.567772, 139.996307},{36.567772, 139.996307}};
+volatile const float heightCenter = 191.169998;
 const float latlonCenterRad[2] = {M_PI / 180 * 0.5 * (latlonCp[0][0] + latlonCp[1][0]),M_PI / 180 * 0.5 * (latlonCp[0][1] + latlonCp[0][1])};
 const float courseScale = 1;
 const int lenCourseData = sizeof(CourseData)/sizeof(CourseData[0]);

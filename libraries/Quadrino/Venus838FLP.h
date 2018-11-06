@@ -860,7 +860,13 @@ void VenusDispatchMessage(int result){
   Serial.print("\t Altitude: ");
   Serial.print(float(venus_ctx.location.sealevel_alt /100));
   Serial.print("m \t Satelite Count: ");
-  Serial.println(venus_ctx.location.sv_count);
+  Serial.print(venus_ctx.location.sv_count);
+  Serial.print("\t ECEFX: ");
+  Serial.print(float(venus_ctx.location.ecef.x/100),6);
+  Serial.print("\t ECEFY: ");
+  Serial.print(float(venus_ctx.location.ecef.y/100),6);
+  Serial.print("\t ECEFZ: ");
+  Serial.println(float(venus_ctx.location.ecef.z/100));
   //GPS_coord[LON]              = venus_ctx.location.longitude;
   //GPS_altitude                = venus_ctx.location.sealevel_alt /100;    // altitude in meter
   //GPS_numSat                  = venus_ctx.location.sv_count;
